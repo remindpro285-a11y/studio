@@ -122,7 +122,11 @@ export function EduAlertDashboard() {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
   });
-  const formWatcher = form.watch();
+  
+  const templateId = form.watch("templateId");
+  const feeName = form.watch("feeName");
+  const dueDate = form.watch("dueDate");
+  const examName = form.watch("examName");
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -193,7 +197,7 @@ export function EduAlertDashboard() {
   React.useEffect(() => {
     if (step < 2) return;
 
-    const template = TEMPLATES[mode].find(t => t.id === formWatcher.templateId);
+    const template = TEMPLATES[mode].find(t => t.id === templateId);
     if (!template) return;
     
     const newFinalData = data.map(row => {
@@ -208,9 +212,9 @@ export function EduAlertDashboard() {
         message = message.replace(/{{className}}/g, newRow.className || '[N/A]');
         
         if (mode === 'fees') {
-            message = message.replace(/{{feeName}}/g, formWatcher.feeName || '[Fee Name]');
+            message = message.replace(/{{feeName}}/g, feeName || '[Fee Name]');
             message = message.replace(/{{feeAmount}}/g, newRow.feeAmount || '[N/A]');
-            message = message.replace(/{{dueDate}}/g, formWatcher.dueDate ? format(formWatcher.dueDate, 'PPP') : '[Due Date]');
+            message = message.replace(/{{dueDate}}/g, dueDate ? format(dueDate, 'PPP') : '[Due Date]');
         } else {
             const mappedHeaders = Object.values(mappings);
             const gradesList = Object.entries(row)
@@ -219,14 +223,14 @@ export function EduAlertDashboard() {
                 .join('\n');
             
             message = message.replace(/{{gradesList}}/g, gradesList || 'No grades available.');
-            message = message.replace(/{{examName}}/g, formWatcher.examName || '[Exam Name]');
+            message = message.replace(/{{examName}}/g, examName || '[Exam Name]');
         }
         
         return { ...newRow, phoneNumber: newRow.phoneNumber, message };
     });
     setFinalData(newFinalData);
     setCurrentPage(1);
-  }, [data, mappings, step, formWatcher, mode]);
+  }, [data, mappings, step, mode, templateId, feeName, dueDate, examName]);
 
   const handleSend = async () => {
     setIsSending(true);
