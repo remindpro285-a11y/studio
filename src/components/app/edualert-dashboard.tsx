@@ -13,7 +13,8 @@ import {
   Send,
   Sparkles,
   RefreshCcw,
-  DollarSign
+  DollarSign,
+  Settings
 } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
@@ -64,6 +65,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+
 
 type Mode = "fees" | "grades";
 
@@ -232,7 +235,14 @@ export function EduAlertDashboard() {
                     Send Fee and Grade Notifications via WhatsApp
                     </CardDescription>
                 </div>
-                {step > 0 && <Button variant="outline" size="sm" onClick={reset}><RefreshCcw className="mr-2 h-4 w-4" /> Start Over</Button>}
+                <div className="flex gap-2">
+                    {step > 0 && <Button variant="outline" size="sm" onClick={reset}><RefreshCcw className="mr-2 h-4 w-4" /> Start Over</Button>}
+                    <Button variant="outline" size="icon" asChild>
+                        <Link href="/settings">
+                            <Settings className="h-4 w-4" />
+                        </Link>
+                    </Button>
+                </div>
             </div>
         </CardHeader>
       
