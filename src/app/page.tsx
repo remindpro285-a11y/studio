@@ -329,6 +329,9 @@ function EduAlertDashboard() {
 
     }, [step, finalData, mode, feeName, dueDate, examName, mappings]);
 
+  const sanitizeParam = (param: string) => {
+    return param.replace(/[\n\t]/g, ' ').replace(/ {5,}/g, '    ');
+  };
 
   const handleSend = async () => {
     setIsSending(true);
@@ -360,7 +363,7 @@ function EduAlertDashboard() {
                 const gradesList = Object.entries(row.rawData)
                     .filter(([header]) => !mappedHeaders.includes(header))
                     .map(([subject, grade]) => `${subject}: ${grade}`)
-                    .join('\n');
+                    .join(', '); // Use comma and space instead of newline
                 parameters = [
                      `${row.studentName} (${row.className})`,
                      examName || '',
@@ -368,10 +371,12 @@ function EduAlertDashboard() {
                 ];
             }
 
+            const sanitizedParams = parameters.map(p => sanitizeParam(String(p)));
+
             const input: SendWhatsAppMessageInput = {
                 recipientPhoneNumber: row.phoneNumber,
                 templateName,
-                parameters
+                parameters: sanitizedParams
             };
 
             const result = await sendWhatsAppMessage(input);
