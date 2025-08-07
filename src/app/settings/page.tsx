@@ -142,15 +142,15 @@ export default function SettingsPage() {
 
   async function handleTestWhaConnection() {
       setIsTestingWha(true);
-      // Save before testing to ensure we use the latest values
+      // Save before testing to ensure we use the latest values from the form
       await form.handleSubmit(onSubmit)();
 
       const result = await testWhaConnection();
       if (result.success) {
-          const businessName = result.data.data?.[0]?.name;
+          const businessName = result.data?.data?.[0]?.name;
           toast({
               title: "WhatsApp API Connected!",
-              description: businessName ? `Successfully connected to ${businessName}.` : "Connection successful.",
+              description: businessName ? `Successfully connected to ${businessName}.` : "Connection successful. Could not retrieve business name.",
               className: "bg-primary text-primary-foreground"
           });
       } else {

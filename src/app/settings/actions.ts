@@ -32,22 +32,22 @@ export async function testWhaConnection() {
     try {
         const { data: settings, error: fetchError } = await supabase
             .from('settings')
-            .select('*')
+            .select('waba_id, access_token')
             .eq('id', 1)
             .single();
 
-        if (fetchError || !settings) {
-            throw new Error(fetchError?.message || "Settings not found. Please save your settings first.");
+        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
+             throw new Error(`Database Error: ${fetchError.message}`);
         }
 
-        const { waba_id, access_token, endpoint } = settings;
+        if (!settings || !settings.waba_id || !settings.access_token) {
+            throw new Error("Settings not found or are incomplete. Please save your WABA ID and Access Token first.");
+        }
+
+        const { waba_id, access_token } = settings;
         
-        if (!waba_id || !access_token || !endpoint) {
-             throw new Error("WABA ID, Access Token, and Endpoint are required.");
-        }
-
-        // We can test the connection by trying to fetch the business profile name
-        const url = `${endpoint.replace(/\/$/, '')}/${waba_id}?fields=name`;
+        // We test the connection by fetching the business profiles associated with the WABA ID
+        const url = `https://graph.facebook.com/v19.0/${waba_id}/business_profiles?fields=name`;
 
         const response = await fetch(url, {
             headers: {
@@ -61,22 +61,8 @@ export async function testWhaConnection() {
             const errorMessage = responseData.error?.message || `API Error: ${response.statusText}`;
             throw new Error(errorMessage);
         }
-        
-        // The API returns a list of profiles, we are interested in the first one
-        const businessProfilesUrl = `${endpoint.replace(/\/$/, '')}/${waba_id}/business_profiles`;
-        const profilesResponse = await fetch(businessProfilesUrl, {
-             headers: {
-                'Authorization': `Bearer ${access_token}`
-            }
-        });
-        const profilesData = await profilesResponse.json();
 
-        if(!profilesResponse.ok) {
-            const errorMessage = profilesData.error?.message || `API Error: ${profilesResponse.statusText}`;
-            throw new Error(`Could not fetch business profiles: ${errorMessage}`);
-        }
-
-        return { success: true, data: profilesData };
+        return { success: true, data: responseData };
 
     } catch (error: any) {
         return { success: false, error: error.message };
