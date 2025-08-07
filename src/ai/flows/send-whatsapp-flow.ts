@@ -76,7 +76,8 @@ export async function sendWhatsAppMessage(input: SendWhatsAppMessageInput): Prom
 
       if (!response.ok) {
         const errorMessage = responseData.error?.message || `API Error: ${response.statusText}`;
-        throw new Error(errorMessage);
+        const errorDetails = responseData.error?.error_data?.details ? ` Details: ${responseData.error.error_data.details}` : '';
+        throw new Error(`${errorMessage}${errorDetails}`);
       }
 
       return { success: true };
