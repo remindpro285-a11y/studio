@@ -323,7 +323,7 @@ function EduAlertDashboard() {
                 parameters = [
                     `${row.studentName} (${row.className})`,
                     feeName || '',
-                    dueDate ? format(dueDate, 'PPP') : '',
+                    dueDate ? format(dueDate, 'dd/MM/yy') : '',
                     row.feeAmount,
                 ];
             } else {
@@ -604,7 +604,7 @@ function EduAlertDashboard() {
                                                 <PopoverTrigger asChild>
                                                     <FormControl>
                                                     <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                        {field.value ? format(field.value, "dd/MM/yy") : <span>Pick a date</span>}
                                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                     </Button>
                                                     </FormControl>
