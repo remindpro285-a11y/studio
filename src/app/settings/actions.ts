@@ -40,13 +40,14 @@ export async function testWhaConnection() {
              throw new Error(`Database Error: ${fetchError.message}`);
         }
 
-        if (!settings || !settings.phone_number_id || !settings.access_token || !settings.endpoint) {
+        if (!settings || !settings.phone_number_id || !settings.access_token || !settings.endpoint || typeof settings.access_token !== 'string' || settings.access_token.trim() === '') {
             throw new Error("Settings not found or are incomplete. Please save a valid Phone Number ID, Access Token, and Endpoint URL first.");
         }
-
+        
         const { phone_number_id, access_token, endpoint } = settings;
 
-        const url = `${endpoint.replace(/\/$/, '')}/${phone_number_id}/whatsapp_business_profile?fields=name`;
+        // Construct the URL exactly as described: [Your Endpoint URL]/v19.0/[Your Phone ID]
+        const url = `${endpoint.replace(/\/$/, '')}/v19.0/${phone_number_id}`;
 
         const response = await fetch(url, {
             headers: {
@@ -56,14 +57,9 @@ export async function testWhaConnection() {
 
         const responseData = await response.json();
 
-        if (!response.ok) {
+        if (!response.ok || responseData.error) {
             const errorMessage = responseData.error?.message || `API Error: ${response.statusText}`;
             throw new Error(errorMessage);
-        }
-        
-        const businessName = responseData.data?.[0]?.name;
-        if (!businessName) {
-            throw new Error("Connection successful, but could not retrieve business name. Please check your Phone Number ID.");
         }
 
         return { success: true, data: responseData };
