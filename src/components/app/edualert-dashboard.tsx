@@ -185,8 +185,11 @@ export function EduAlertDashboard() {
   
   React.useEffect(() => {
     const newMode = getModeFromParams();
-    setMode(newMode);
-  }, [searchParams, getModeFromParams]);
+    if (newMode !== mode) {
+      setMode(newMode);
+    }
+  }, [searchParams, getModeFromParams, mode]);
+
 
   React.useEffect(() => {
     const newMappings: Record<string, string> = {};
@@ -390,6 +393,7 @@ export function EduAlertDashboard() {
         <CardHeader>
             <div className="flex justify-between items-start">
                 <div>
+                    <h2 className="text-xl font-semibold text-primary mb-1">Gnanamani Educational Institutions</h2>
                     <CardTitle className="font-sans text-3xl font-bold">Send Notifications</CardTitle>
                     <CardDescription>
                     Send Fee and Grade Notifications via WhatsApp Seamlessly.
@@ -677,9 +681,9 @@ export function EduAlertDashboard() {
 
                         <div className="flex justify-between items-center">
                             <Button variant="outline" onClick={() => navigateToStep(1)}><ArrowLeft className="mr-2 h-4 w-4"/> Back to Mapping</Button>
-                             <Button type="button" size="lg" onClick={handleSend} disabled={isSending}>
+                             <Button type="button" size="lg" onClick={handleSend} disabled={isSending || finalData.length === 0}>
                                 {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
-                                Send {finalData.length} Notifications
+                                {isSending ? "Sending..." : `Send ${finalData.length} Notifications`}
                              </Button>
                         </div>
                     </form>
@@ -691,3 +695,5 @@ export function EduAlertDashboard() {
     </Card>
   );
 }
+
+    
