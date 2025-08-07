@@ -71,10 +71,17 @@ export default function SettingsPage() {
             .single();
 
         if (data) {
-            const formData = Object.fromEntries(
-                Object.entries(data).map(([key, value]) => [key, value === null ? "" : value])
-            );
-            form.reset(formData as SettingsFormValues);
+            // Ensure all fields have string values to avoid issues with controlled components
+            const formData: SettingsFormValues = {
+                id: data.id || 1,
+                phone_number_id: data.phone_number_id || "",
+                waba_id: data.waba_id || "",
+                access_token: data.access_token || "",
+                endpoint: data.endpoint || "https://graph.facebook.com/v19.0/",
+                marks_template_name: data.marks_template_name || "",
+                fees_template_name: data.fees_template_name || "",
+            };
+            form.reset(formData);
         } else if(error && error.code !== 'PGRST116') { // Ignore no rows found error
              toast({
                 variant: "destructive",
@@ -201,10 +208,10 @@ export default function SettingsPage() {
                   <FormItem>
                     <FormLabel>Access Token</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Your Access Token" {...field} />
+                      <Input type="text" placeholder="Your Access Token" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Your token is stored securely and is not displayed here.
+                      Enter your permanent access token.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

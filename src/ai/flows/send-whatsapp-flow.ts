@@ -28,18 +28,22 @@ export async function sendWhatsAppMessage(input: SendWhatsAppMessageInput): Prom
    try {
       const { data: settings, error: fetchError } = await supabase
         .from('settings')
-        .select('*')
+        .select('phone_number_id, access_token')
         .eq('id', 1)
         .single();
 
-      if (fetchError || !settings) {
-        throw new Error(fetchError?.message || 'API settings not found in database.');
+      if (fetchError) {
+        throw new Error(`Database Error: ${fetchError.message}`);
+      }
+      
+      if (!settings) {
+        throw new Error('API settings not found in database. Please configure them on the settings page.');
       }
 
       const { phone_number_id, access_token } = settings;
 
-      if (!phone_number_id || !access_token) {
-        throw new Error('Incomplete API settings. Please configure Phone Number ID and Access Token.');
+      if (!phone_number_id || !access_token || typeof access_token !== 'string' || access_token.trim() === '') {
+        throw new Error('Incomplete or invalid API settings. Please configure a valid Phone Number ID and Access Token.');
       }
 
       const url = `https://graph.facebook.com/v19.0/${phone_number_id}/messages`;
