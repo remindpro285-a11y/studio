@@ -36,13 +36,13 @@ export async function sendWhatsAppMessage(input: SendWhatsAppMessageInput): Prom
         throw new Error(fetchError?.message || 'API settings not found in database.');
       }
 
-      const { phone_number_id, access_token, endpoint } = settings;
+      const { phone_number_id, access_token } = settings;
 
-      if (!phone_number_id || !access_token || !endpoint) {
-        throw new Error('Incomplete API settings. Please configure Phone Number ID, Access Token, and Endpoint.');
+      if (!phone_number_id || !access_token) {
+        throw new Error('Incomplete API settings. Please configure Phone Number ID and Access Token.');
       }
 
-      const url = `${endpoint.replace(/\/$/, '')}/${phone_number_id}/messages`;
+      const url = `https://graph.facebook.com/v19.0/${phone_number_id}/messages`;
       
       const payload = {
         messaging_product: 'whatsapp',
