@@ -14,7 +14,8 @@ import {
   Send,
   RefreshCcw,
   DollarSign,
-  Settings
+  Settings,
+  MessageSquareText,
 } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
@@ -448,7 +449,7 @@ export function EduAlertDashboard() {
                             </div>
                             <div className="lg:col-span-2">
                                 <div className="flex justify-between items-center mb-2">
-                                    <h3 className="text-xl font-semibold font-headline">Preview</h3>
+                                    <h3 className="text-xl font-semibold font-headline">Data Preview</h3>
                                     <div className="text-sm text-muted-foreground">
                                         Page {currentPage} of {totalPages}
                                     </div>
@@ -496,6 +497,20 @@ export function EduAlertDashboard() {
                                         </CardFooter>
                                     )}
                                 </Card>
+
+                                {paginatedData.length > 0 && (
+                                    <div className="mt-6">
+                                        <h3 className="text-xl font-semibold font-headline mb-2">Message Preview</h3>
+                                        <Card className="bg-muted/50">
+                                            <CardContent className="p-4">
+                                                <div className="flex items-start gap-3">
+                                                    <MessageSquareText className="w-5 h-5 mt-1 text-muted-foreground" />
+                                                    <p className="text-sm text-foreground whitespace-pre-wrap">{paginatedData[0].message}</p>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -514,5 +529,3 @@ export function EduAlertDashboard() {
     </Card>
   );
 }
-
-    
