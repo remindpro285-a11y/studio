@@ -32,19 +32,15 @@ export async function sendWhatsAppMessage(input: SendWhatsAppMessageInput): Prom
         .eq('id', 1)
         .single();
 
-      if (fetchError) {
+      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found, which we handle next
         throw new Error(`Database Error: ${fetchError.message}`);
       }
       
-      if (!settings) {
-        throw new Error('API settings not found in database. Please configure them on the settings page.');
+      if (!settings || !settings.phone_number_id || !settings.access_token || typeof settings.access_token !== 'string' || settings.access_token.trim() === '') {
+        throw new Error('API settings not found or are incomplete in the database. Please configure a valid Phone Number ID and Access Token on the settings page.');
       }
 
       const { phone_number_id, access_token } = settings;
-
-      if (!phone_number_id || !access_token || typeof access_token !== 'string' || access_token.trim() === '') {
-        throw new Error('Incomplete or invalid API settings. Please configure a valid Phone Number ID and Access Token.');
-      }
 
       const url = `https://graph.facebook.com/v19.0/${phone_number_id}/messages`;
       
