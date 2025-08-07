@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from "zod";
@@ -9,7 +8,7 @@ const settingsSchema = z.object({
   phone_number_id: z.string().min(1, "Phone Number ID is required."),
   waba_id: z.string().min(1, "WABA ID is required."),
   access_token: z.string().min(1, "Access Token is required."),
-  api_version: z.string().min(1, "API Version is required.").default("v20.0"),
+  endpoint: z.string().min(1, "Endpoint is required.").default("https://graph.facebook.com/v20.0/"),
   marks_template_name: z.string().min(1, "Marks Template Name is required."),
   fees_template_name: z.string().min(1, "Fees Template Name is required."),
 });

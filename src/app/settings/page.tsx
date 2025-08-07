@@ -36,7 +36,7 @@ const settingsSchema = z.object({
   phone_number_id: z.string().min(1, "Phone Number ID is required."),
   waba_id: z.string().min(1, "WABA ID is required."),
   access_token: z.string().min(1, "Access Token is required."),
-  api_version: z.string().min(1, "API Version is required.").default("v20.0"),
+  endpoint: z.string().min(1, "Endpoint is required.").default("https://graph.facebook.com/v20.0/"),
   marks_template_name: z.string().min(1, "Marks Template Name is required."),
   fees_template_name: z.string().min(1, "Fees Template Name is required."),
 });
@@ -53,7 +53,7 @@ export default function SettingsPage() {
         phone_number_id: "",
         waba_id: "",
         access_token: "",
-        api_version: "v20.0",
+        endpoint: "https://graph.facebook.com/v20.0/",
         marks_template_name: "",
         fees_template_name: ""
     },
@@ -157,12 +157,12 @@ export default function SettingsPage() {
               />
                <FormField
                 control={form.control}
-                name="api_version"
+                name="endpoint"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>API Version</FormLabel>
+                    <FormLabel>Endpoint</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., v20.0" {...field} />
+                      <Input placeholder="e.g., https://graph.facebook.com/v20.0/" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -194,14 +194,16 @@ export default function SettingsPage() {
                   </FormItem>
                 )}
               />
-              <CardFooter className="px-0 pt-6 flex justify-between">
-                <Button variant="outline" asChild>
-                    <Link href="/">Back to Dashboard</Link>
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4"/>}
-                  Save Settings
-                </Button>
+              <CardFooter className="px-0 pt-6">
+                <div className="flex w-full justify-between">
+                    <Button variant="outline" asChild>
+                        <Link href="/">Back to Dashboard</Link>
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="animate-spin" /> : <Save />}
+                        {isSubmitting ? "Saving..." : "Save Settings"}
+                    </Button>
+                </div>
               </CardFooter>
             </form>
           </Form>
