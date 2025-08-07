@@ -8,9 +8,8 @@
  * - SendWhatsAppMessageOutput - The return type for the sendWhatsAppMessage function.
  */
 
-import { ai } from '@/ai/genkit';
 import { supabase } from '@/lib/supabase';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const SendWhatsAppMessageInputSchema = z.object({
   recipientPhoneNumber: z.string().describe('The phone number of the recipient.'),
@@ -26,17 +25,7 @@ const SendWhatsAppMessageOutputSchema = z.object({
 export type SendWhatsAppMessageOutput = z.infer<typeof SendWhatsAppMessageOutputSchema>;
 
 export async function sendWhatsAppMessage(input: SendWhatsAppMessageInput): Promise<SendWhatsAppMessageOutput> {
-  return sendWhatsAppMessageFlow(input);
-}
-
-const sendWhatsAppMessageFlow = ai.defineFlow(
-  {
-    name: 'sendWhatsAppMessageFlow',
-    inputSchema: SendWhatsAppMessageInputSchema,
-    outputSchema: SendWhatsAppMessageOutputSchema,
-  },
-  async (input) => {
-    try {
+   try {
       const { data: settings, error: fetchError } = await supabase
         .from('settings')
         .select('*')
@@ -94,5 +83,4 @@ const sendWhatsAppMessageFlow = ai.defineFlow(
     } catch (error: any) {
       return { success: false, error: error.message };
     }
-  }
-);
+}
