@@ -46,12 +46,13 @@ export async function sendWhatsAppMessage(input: SendWhatsAppMessageInput): Prom
       
       const payload = {
         messaging_product: 'whatsapp',
-        recipient_type: 'individual',
         to: input.recipientPhoneNumber,
+        recipient_type: 'individual',
         type: 'template',
         template: {
           name: input.templateName,
           language: {
+            policy: 'deterministic',
             code: 'en_US',
           },
           components: [
