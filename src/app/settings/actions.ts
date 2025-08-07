@@ -46,7 +46,7 @@ export async function testWhaConnection() {
         
         const { phone_number_id, access_token, endpoint } = settings;
 
-        const url = `${endpoint.replace(/\/$/, '')}/v19.0/${phone_number_id}/whatsapp_business_profile?fields=name`;
+        const url = `${endpoint.replace(/\/$/, '')}/v19.0/${phone_number_id}?fields=verified_name`;
 
         const response = await fetch(url, {
             headers: {
