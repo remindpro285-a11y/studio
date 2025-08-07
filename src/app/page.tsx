@@ -95,8 +95,8 @@ const MAPPING_FIELDS: Record<Mode, { key: string; label: string; searchTerms: st
 };
 
 const PREVIEW_TEMPLATES: Record<Mode, string> = {
-    fees: "Dear Parent, the {{feeName}} of Rs. {{feeAmount}} for your child {{studentName}} of class {{className}} is due on {{dueDate}}. Kindly pay at your earliest convenience. Thank you, School Admin.",
-    grades: "Dear Parent, here are the grades for {{studentName}} (Class {{className}}) from the {{examName}}:\n{{gradesList}}\nCongratulations! - Principal"
+    fees: "Hello! This is a gentle reminder that {{studentAndClass}}'s {{feeName}} is pending and is due on {{dueDate}}. Due Amount:{{feeAmount}} .Kindly take care of it at your convenience.",
+    grades: "Hello Parent, here is the report for {{studentAndClass}} for the {{examName}} examination:\n\nSubject-wise Grades:\n{{gradesList}}"
 };
 
 const FormSchema = z.object({
@@ -295,8 +295,8 @@ function EduAlertDashboard() {
         const firstRow = finalData[0];
         let message = PREVIEW_TEMPLATES[mode];
 
-        message = message.replace(/{{studentName}}/g, firstRow.studentName || '[N/A]');
-        message = message.replace(/{{className}}/g, firstRow.className || '[N/A]');
+        const studentAndClass = `${firstRow.studentName || '[Student]'} (${firstRow.className || '[Class]'})`;
+        message = message.replace(/{{studentAndClass}}/g, studentAndClass);
 
         if (mode === 'fees') {
             message = message.replace(/{{feeName}}/g, feeName || '[Fee Name]');
@@ -306,7 +306,7 @@ function EduAlertDashboard() {
              const mappedHeaders = Object.values(mappings);
              const gradesList = Object.entries(firstRow.rawData)
                 .filter(([header]) => !mappedHeaders.includes(header))
-                .map(([subject, grade]) => `- ${subject}: ${grade}`)
+                .map(([subject, grade]) => `${subject}:${grade}`)
                 .join('\n');
             message = message.replace(/{{gradesList}}/g, gradesList || 'No grades available.');
             message = message.replace(/{{examName}}/g, examName || '[Exam Name]');
