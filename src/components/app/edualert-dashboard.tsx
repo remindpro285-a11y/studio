@@ -69,7 +69,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-
+import { supabase } from "@/lib/supabase";
+import type { SettingsFormValues } from "@/app/settings/actions";
 
 type Mode = "fees" | "grades";
 
@@ -89,22 +90,18 @@ const MAPPING_FIELDS: Record<Mode, { key: string; label: string }[]> = {
   ],
 };
 
-const TEMPLATES: Record<Mode, { id: string; name: string; text: string }[]> = {
-  fees: [
-    { id: "fee_reminder_1", name: "Formal Fee Reminder", text: "Dear Parent, the {{feeName}} of Rs. {{feeAmount}} for your child {{studentName}} of class {{className}} is due on {{dueDate}}. Kindly pay at your earliest convenience. Thank you, School Admin." },
-    { id: "fee_reminder_2", name: "Urgent Fee Notice", text: "URGENT: The {{feeName}} of Rs. {{feeAmount}} for {{studentName}} of class {{className}} is due on {{dueDate}}. Please clear the dues to avoid late fees. Regards, Accounts Department." },
-  ],
-  grades: [
-    { id: "grade_update_1", name: "Standard Grade Update", text: "Dear Parent, here are the grades for {{studentName}} (Class {{className}}) from the {{examName}}:\n{{gradesList}}\nCongratulations! - Principal" },
-    { id: "grade_update_2", name: "Detailed Performance Report", text: "Performance Update for {{studentName}} (Class {{className}}) for {{examName}}:\n{{gradesList}}\nFor a detailed report, please visit the parent portal. Best, Examination Office." },
-  ],
+// This is now used for generating a user-friendly preview.
+// The actual template sent is determined by the name in settings.
+const PREVIEW_TEMPLATES: Record<Mode, string> = {
+    fees: "Dear Parent, the {{feeName}} of Rs. {{feeAmount}} for your child {{studentName}} of class {{className}} is due on {{dueDate}}. Kindly pay at your earliest convenience. Thank you, School Admin.",
+    grades: "Dear Parent, here are the grades for {{studentName}} (Class {{className}}) from the {{examName}}:\n{{gradesList}}\nCongratulations! - Principal"
 };
+
 
 const FormSchema = z.object({
   feeName: z.string().optional(),
   dueDate: z.date().optional(),
   examName: z.string().optional(),
-  templateId: z.string({ required_error: "Please select a template." }),
 });
 
 export function EduAlertDashboard() {
@@ -118,22 +115,46 @@ export function EduAlertDashboard() {
   const [isSending, setIsSending] = React.useState(false);
   const [currentPage, setCurrentPage] = React.useState(1);
   const [isParsing, setIsParsing] = React.useState(false);
+  const [settings, setSettings] = React.useState<SettingsFormValues | null>(null);
+  const [isLoadingSettings, setIsLoadingSettings] = React.useState(true);
+
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       feeName: "",
       examName: "",
-      templateId: TEMPLATES["fees"][0].id,
       dueDate: undefined,
     }
   });
-  
-  const templateId = form.watch("templateId");
+
+  React.useEffect(() => {
+    async function fetchSettings() {
+        setIsLoadingSettings(true);
+        const { data, error } = await supabase
+            .from('settings')
+            .select('*')
+            .eq('id', 1)
+            .single();
+
+        if (data) {
+            setSettings(data);
+        } else if (error && error.code !== 'PGRST116') { // Ignore no rows found error
+             toast({
+                variant: "destructive",
+                title: "Error fetching settings",
+                description: "Could not load settings. Please configure them first.",
+            });
+        }
+        setIsLoadingSettings(false);
+    }
+    fetchSettings();
+  }, [toast]);
+
   const feeName = form.watch("feeName");
   const dueDate = form.watch("dueDate");
   const examName = form.watch("examName");
-  
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const selectedFile = e.target.files[0];
@@ -151,11 +172,11 @@ export function EduAlertDashboard() {
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
-          
+
           if(jsonData.length === 0) {
             throw new Error("No data found in the file.");
           }
-          
+
           setData(jsonData);
           setHeaders(Object.keys(jsonData[0]));
           setStep(1);
@@ -187,7 +208,7 @@ export function EduAlertDashboard() {
     const requiredFields = MAPPING_FIELDS[mode].map(f => f.key);
     const mappedFields = Object.keys(mappings);
     const allRequiredMapped = requiredFields.every(rf => mappedFields.includes(rf) && mappings[rf]);
-    
+
     if (!allRequiredMapped) {
         toast({
             variant: "destructive",
@@ -196,19 +217,29 @@ export function EduAlertDashboard() {
         });
         return;
     }
+
+    const templateName = mode === 'fees' ? settings?.fees_template_name : settings?.marks_template_name;
+    if(!templateName) {
+         toast({
+            variant: "destructive",
+            title: "Template Not Found",
+            description: `The template name for ${mode} is not configured in settings.`,
+        });
+        return;
+    }
+
     setStep(2);
-    form.setValue("templateId", TEMPLATES[mode][0].id);
     setCurrentPage(1);
   };
-  
+
     const finalData = React.useMemo(() => {
         if (step < 2) return [];
 
-        const template = TEMPLATES[mode].find(t => t.id === templateId);
-        if (!template) return [];
+        let messageTemplate = PREVIEW_TEMPLATES[mode];
+        if (!messageTemplate) return [];
 
         return data.map(row => {
-            let message = template.text;
+            let message = messageTemplate;
             const newRow: Record<string, string> = {};
 
             Object.entries(mappings).forEach(([mapKey, header]) => {
@@ -235,7 +266,7 @@ export function EduAlertDashboard() {
 
             return { ...newRow, phoneNumber: newRow.phoneNumber, message };
         });
-    }, [step, mode, templateId, data, mappings, feeName, dueDate, examName]);
+    }, [step, mode, data, mappings, feeName, dueDate, examName]);
 
   const handleSend = async () => {
     setIsSending(true);
@@ -255,12 +286,7 @@ export function EduAlertDashboard() {
     setData([]);
     setHeaders([]);
     setMappings({});
-    form.reset({
-      feeName: "",
-      examName: "",
-      templateId: TEMPLATES[mode][0].id,
-      dueDate: undefined,
-    });
+    form.reset();
   };
 
   const paginatedData = finalData.slice(
@@ -268,6 +294,8 @@ export function EduAlertDashboard() {
     currentPage * ITEMS_PER_PAGE
   );
   const totalPages = Math.ceil(finalData.length / ITEMS_PER_PAGE);
+
+  const currentTemplateName = mode === 'fees' ? settings?.fees_template_name : settings?.marks_template_name;
 
   return (
     <Card className="w-full max-w-5xl shadow-2xl">
@@ -289,7 +317,7 @@ export function EduAlertDashboard() {
                 </div>
             </div>
         </CardHeader>
-      
+
         <CardContent>
             {step === 0 && (
                 <div className="text-center p-8 border-2 border-dashed rounded-lg">
@@ -316,7 +344,7 @@ export function EduAlertDashboard() {
                     )}
                 </div>
             )}
-            
+
             {step === 1 && (
                 <div className="space-y-6">
                     <div>
@@ -326,7 +354,6 @@ export function EduAlertDashboard() {
                             const newMode = v as Mode;
                             setMode(newMode);
                             setMappings({});
-                            form.setValue("templateId", TEMPLATES[newMode][0].id);
                         }} className="w-fit mt-4">
                             <TabsList>
                                 <TabsTrigger value="fees"><DollarSign className="mr-2 h-4 w-4" />Fee Notifications</TabsTrigger>
@@ -334,6 +361,28 @@ export function EduAlertDashboard() {
                             </TabsList>
                         </Tabs>
                     </div>
+                    {isLoadingSettings ? (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin"/>
+                            <span>Loading settings...</span>
+                        </div>
+                    ): !currentTemplateName ? (
+                        <Alert variant="destructive">
+                           <AlertTitle>Setting Missing</AlertTitle>
+                           <AlertDescription>
+                             The template name for '{mode}' notifications is not set. Please <Link href="/settings" className="font-bold underline">go to settings</Link> to configure it.
+                           </AlertDescription>
+                        </Alert>
+                    ) : (
+                        <Alert>
+                            <MessageSquareText className="h-4 w-4"/>
+                           <AlertTitle>Template To Be Used</AlertTitle>
+                           <AlertDescription>
+                            The WhatsApp template <span className="font-semibold">{currentTemplateName}</span> from your settings will be used.
+                           </AlertDescription>
+                        </Alert>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {MAPPING_FIELDS[mode].map(field => (
                             <div key={field.key} className="space-y-2">
@@ -360,7 +409,7 @@ export function EduAlertDashboard() {
                     </Alert>
                      <div className="flex justify-between items-center pt-4">
                         <Button variant="outline" onClick={() => reset()}><ArrowLeft className="mr-2 h-4 w-4"/> Back to Upload</Button>
-                        <Button onClick={handleConfirmMapping} className="bg-accent hover:bg-accent/90">
+                        <Button onClick={handleConfirmMapping} disabled={!currentTemplateName || isLoadingSettings} className="bg-accent hover:bg-accent/90">
                             Confirm Mappings & Preview <ChevronRight className="ml-2 h-4 w-4"/>
                         </Button>
                     </div>
@@ -373,25 +422,6 @@ export function EduAlertDashboard() {
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className="lg:col-span-1 space-y-6">
                                 <h3 className="text-xl font-semibold font-headline">Configure & Send</h3>
-                                
-                                <FormField
-                                    control={form.control}
-                                    name="templateId"
-                                    render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Message Template</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Select a template" /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {TEMPLATES[mode].map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                                        </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
 
                                 {mode === "fees" && (
                                 <>
@@ -515,7 +545,7 @@ export function EduAlertDashboard() {
                         </div>
 
                         <Separator/>
-                        
+
                         <div className="flex justify-end">
                              <Button type="button" size="lg" onClick={handleSend} disabled={isSending}>
                                 {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
@@ -529,3 +559,5 @@ export function EduAlertDashboard() {
     </Card>
   );
 }
+
+    
