@@ -91,8 +91,8 @@ const MAPPING_FIELDS: Record<Mode, { key: string; label: string }[]> = {
 
 const TEMPLATES: Record<Mode, { id: string; name: string; text: string }[]> = {
   fees: [
-    { id: "fee_reminder_1", name: "Formal Fee Reminder", text: "Dear Parent, the {{feeName}} of ₹{{feeAmount}} for your child {{studentName}} of class {{className}} is due on {{dueDate}}. Kindly pay at your earliest convenience. Thank you, School Admin." },
-    { id: "fee_reminder_2", name: "Urgent Fee Notice", text: "URGENT: The {{feeName}} of ₹{{feeAmount}} for {{studentName}} of class {{className}} is due on {{dueDate}}. Please clear the dues to avoid late fees. Regards, Accounts Department." },
+    { id: "fee_reminder_1", name: "Formal Fee Reminder", text: "Dear Parent, the {{feeName}} of Rs. {{feeAmount}} for your child {{studentName}} of class {{className}} is due on {{dueDate}}. Kindly pay at your earliest convenience. Thank you, School Admin." },
+    { id: "fee_reminder_2", name: "Urgent Fee Notice", text: "URGENT: The {{feeName}} of Rs. {{feeAmount}} for {{studentName}} of class {{className}} is due on {{dueDate}}. Please clear the dues to avoid late fees. Regards, Accounts Department." },
   ],
   grades: [
     { id: "grade_update_1", name: "Standard Grade Update", text: "Dear Parent, here are the grades for {{studentName}} (Class {{className}}) from the {{examName}}:\n{{gradesList}}\nCongratulations! - Principal" },
