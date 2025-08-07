@@ -130,10 +130,8 @@ export function EduAlertDashboard() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
-  const getModeFromParams = React.useCallback(() => (searchParams.get('mode') === 'grades' ? 'grades' : 'fees') as Mode, [searchParams]);
-
   const [step, setStep] = React.useState(0);
-  const [mode, setMode] = React.useState<Mode>(getModeFromParams());
+  const [mode, setMode] = React.useState<Mode>('fees');
   const [file, setFile] = React.useState<File | null>(null);
   const [data, setData] = React.useState<Record<string, any>[]>([]);
   const [headers, setHeaders] = React.useState<string[]>([]);
@@ -154,6 +152,13 @@ export function EduAlertDashboard() {
       dueDate: new Date(),
     }
   });
+  
+  React.useEffect(() => {
+    const modeFromParams = searchParams.get('mode');
+    if (modeFromParams === 'grades' || modeFromParams === 'fees') {
+      setMode(modeFromParams);
+    }
+  }, [searchParams]);
 
   const navigateToStep = (nextStep: number) => {
     setDirection(nextStep > step ? 1 : -1);
@@ -183,14 +188,6 @@ export function EduAlertDashboard() {
     fetchSettings();
   }, [toast]);
   
-  React.useEffect(() => {
-    const newMode = getModeFromParams();
-    if (newMode !== mode) {
-      setMode(newMode);
-    }
-  }, [searchParams, getModeFromParams, mode]);
-
-
   React.useEffect(() => {
     const newMappings: Record<string, string> = {};
     const currentRequiredKeys = MAPPING_FIELDS[mode].map(f => f.key);
@@ -393,7 +390,7 @@ export function EduAlertDashboard() {
         <CardHeader>
             <div className="flex justify-between items-start">
                 <div>
-                    <h2 className="text-2xl font-semibold text-primary mb-1">Gnanamani Educational Institutions</h2>
+                    <h2 className="text-3xl font-semibold text-primary mb-1">Gnanamani Educational Institutions</h2>
                     <CardTitle className="font-sans text-3xl font-bold">Send Notifications</CardTitle>
                     <CardDescription>
                     Send Fee and Grade Notifications via WhatsApp Seamlessly.
@@ -695,4 +692,3 @@ export function EduAlertDashboard() {
     </Card>
   );
 }
-
