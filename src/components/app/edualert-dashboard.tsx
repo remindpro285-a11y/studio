@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +20,8 @@ import {
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import * as XLSX from "xlsx";
+
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -70,21 +73,6 @@ import Link from "next/link";
 
 type Mode = "fees" | "grades";
 
-// Mock Data
-const MOCK_DATA = [
-    { "Student Name": "Liam Johnson", "Class Attended": "Class 10-A", "Parent Phone": "1112223331", "Pending Dues": "5,000", "Latest Grade": "A+" },
-    { "Student Name": "Olivia Smith", "Class Attended": "Class 10-B", "Parent Phone": "1112223332", "Pending Dues": "5,000", "Latest Grade": "A" },
-    { "Student Name": "Noah Williams", "Class Attended": "Class 9-C", "Parent Phone": "1112223333", "Pending Dues": "4,500", "Latest Grade": "B+" },
-    { "Student Name": "Emma Brown", "Class Attended": "Class 11-A", "Parent Phone": "1112223334", "Pending Dues": "6,000", "Latest Grade": "C" },
-    { "Student Name": "Oliver Jones", "Class Attended": "Class 12-B", "Parent Phone": "1112223335", "Pending Dues": "6,500", "Latest Grade": "A-" },
-    { "Student Name": "Ava Garcia", "Class Attended": "Class 8-A", "Parent Phone": "1112223336", "Pending Dues": "4,000", "Latest Grade": "B" },
-    { "Student Name": "Elijah Miller", "Class Attended": "Class 7-D", "Parent Phone": "1112223337", "Pending Dues": "3,500", "Latest Grade": "B-" },
-    { "Student Name": "Charlotte Davis", "Class Attended": "Class 10-A", "Parent Phone": "1112223338", "Pending Dues": "5,000", "Latest Grade": "A+" },
-    { "Student Name": "James Rodriguez", "Class Attended": "Class 9-B", "Parent Phone": "1112223339", "Pending Dues": "4,500", "Latest Grade": "C+" },
-    { "Student Name": "Sophia Wilson", "Class Attended": "Class 11-C", "Parent Phone": "1112223340", "Pending Dues": "6,000", "Latest Grade": "B+" },
-    { "Student Name": "Benjamin Martinez", "Class Attended": "Class 12-A", "Parent Phone": "1112223341", "Pending Dues": "6,500", "Latest Grade": "A" },
-    { "Student Name": "Isabella Anderson", "Class Attended": "Class 8-B", "Parent Phone": "1112223342", "Pending Dues": "4,000", "Latest Grade": "A-" }
-];
 
 const MAPPING_FIELDS: Record<Mode, { key: string; label: string }[]> = {
   fees: [
@@ -124,12 +112,13 @@ export function EduAlertDashboard() {
   const [step, setStep] = React.useState(0); // 0: Upload, 1: Map, 2: Preview
   const [mode, setMode] = React.useState<Mode>("fees");
   const [file, setFile] = React.useState<File | null>(null);
-  const [data, setData] = React.useState<Record<string, string>[]>([]);
+  const [data, setData] = React.useState<Record<string, any>[]>([]);
   const [headers, setHeaders] = React.useState<string[]>([]);
   const [mappings, setMappings] = React.useState<Record<string, string>>({});
   const [finalData, setFinalData] = React.useState<Record<string, string>[]>([]);
   const [isSending, setIsSending] = React.useState(false);
   const [currentPage, setCurrentPage] = React.useState(1);
+  const [isParsing, setIsParsing] = React.useState(false);
   const ITEMS_PER_PAGE = 5;
 
   const form = useForm<z.infer<typeof FormSchema>>({
@@ -141,10 +130,48 @@ export function EduAlertDashboard() {
     if (e.target.files?.[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
-      // Simulate parsing
-      setData(MOCK_DATA);
-      setHeaders(Object.keys(MOCK_DATA[0]));
-      setStep(1);
+      setIsParsing(true);
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const arrayBuffer = event.target?.result;
+          if (!arrayBuffer) {
+              throw new Error("Could not read file.");
+          }
+          const workbook = XLSX.read(arrayBuffer, { type: 'buffer' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
+          
+          if(jsonData.length === 0) {
+            throw new Error("No data found in the file.");
+          }
+          
+          setData(jsonData);
+          setHeaders(Object.keys(jsonData[0]));
+          setStep(1);
+
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error Parsing File",
+                description: error.message || "Could not process the uploaded file. Please ensure it's a valid Excel or CSV.",
+            });
+            reset();
+        } finally {
+            setIsParsing(false);
+        }
+      };
+      reader.onerror = () => {
+        toast({
+            variant: "destructive",
+            title: "Error Reading File",
+            description: "Something went wrong while trying to read your file.",
+        });
+        setIsParsing(false);
+      }
+      reader.readAsArrayBuffer(selectedFile);
     }
   };
 
@@ -176,7 +203,7 @@ export function EduAlertDashboard() {
         const newRow: Record<string, string> = {};
 
         Object.entries(mappings).forEach(([mapKey, header]) => {
-            newRow[mapKey] = row[header];
+            newRow[mapKey] = String(row[header] ?? '');
         });
 
         message = message.replace(/{{studentName}}/g, newRow.studentName || '[N/A]');
@@ -191,7 +218,7 @@ export function EduAlertDashboard() {
             message = message.replace(/{{examName}}/g, formWatcher.examName || '[Exam Name]');
         }
         
-        return { ...newRow, message };
+        return { ...newRow, phoneNumber: newRow.phoneNumber, message };
     });
     setFinalData(newFinalData);
     setCurrentPage(1);
@@ -249,18 +276,27 @@ export function EduAlertDashboard() {
         <CardContent>
             {step === 0 && (
                 <div className="text-center p-8 border-2 border-dashed rounded-lg">
-                    <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-semibold">Upload Student Data</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">Upload an Excel or CSV file to begin.</p>
-                    <div className="mt-6">
-                        <Button asChild>
-                            <label htmlFor="file-upload">
-                                <FileUp className="mr-2 h-4 w-4"/> Choose File
-                                <Input id="file-upload" type="file" className="sr-only" onChange={handleFileChange} accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
-                            </label>
-                        </Button>
-                    </div>
-                     <p className="mt-4 text-xs text-muted-foreground">No file? We'll use sample data.</p>
+                    {isParsing ? (
+                        <>
+                            <Loader2 className="mx-auto h-12 w-12 text-primary animate-spin" />
+                            <h3 className="mt-4 text-lg font-semibold">Parsing File...</h3>
+                            <p className="mt-1 text-sm text-muted-foreground">Please wait while we read your data.</p>
+                        </>
+                    ) : (
+                        <>
+                            <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <h3 className="mt-4 text-lg font-semibold">Upload Student Data</h3>
+                            <p className="mt-1 text-sm text-muted-foreground">Upload an Excel or CSV file to begin.</p>
+                            <div className="mt-6">
+                                <Button asChild>
+                                    <label htmlFor="file-upload">
+                                        <FileUp className="mr-2 h-4 w-4"/> Choose File
+                                        <Input id="file-upload" type="file" className="sr-only" onChange={handleFileChange} accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
+                                    </label>
+                                </Button>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
             
@@ -268,8 +304,11 @@ export function EduAlertDashboard() {
                 <div className="space-y-6">
                     <div>
                         <h3 className="text-xl font-semibold font-headline">Map Data Columns</h3>
-                        <p className="text-muted-foreground">Match your sheet columns to the required fields.</p>
-                        <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)} className="w-fit mt-4">
+                        <p className="text-muted-foreground">Match your sheet columns to the required fields for <span className="font-semibold">{file?.name}</span>.</p>
+                        <Tabs value={mode} onValueChange={(v) => {
+                            setMode(v as Mode);
+                            setMappings({});
+                        }} className="w-fit mt-4">
                             <TabsList>
                                 <TabsTrigger value="fees"><DollarSign className="mr-2 h-4 w-4" />Fee Notifications</TabsTrigger>
                                 <TabsTrigger value="grades"><GraduationCap className="mr-2 h-4 w-4" />Grade Reports</TabsTrigger>
@@ -282,7 +321,7 @@ export function EduAlertDashboard() {
                                 <Label htmlFor={`map-${field.key}`}>{field.label}</Label>
                                 <Select onValueChange={value => setMappings(prev => ({ ...prev, [field.key]: value }))}>
                                     <SelectTrigger id={`map-${field.key}`}>
-                                        <SelectValue placeholder="Select column..." />
+                                        <SelectValue placeholder="Select column from your file..." />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {headers.map(header => (
@@ -294,9 +333,9 @@ export function EduAlertDashboard() {
                         ))}
                     </div>
                      <div className="flex justify-between items-center pt-4">
-                        <Button variant="outline" onClick={() => setStep(0)}><ArrowLeft className="mr-2 h-4 w-4"/> Back</Button>
+                        <Button variant="outline" onClick={() => reset()}><ArrowLeft className="mr-2 h-4 w-4"/> Back to Upload</Button>
                         <Button onClick={handleConfirmMapping} className="bg-accent hover:bg-accent/90">
-                            Confirm Mappings <ChevronRight className="ml-2 h-4 w-4"/>
+                            Confirm Mappings & Preview <ChevronRight className="ml-2 h-4 w-4"/>
                         </Button>
                     </div>
                 </div>
