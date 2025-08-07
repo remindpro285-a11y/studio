@@ -162,7 +162,7 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="font-headline text-3xl">API Settings</CardTitle>
           <CardDescription>
-            Configure your WhatsApp Business API credentials and test your database connection.
+            Configure your WhatsApp Business API credentials and test your database connection. Go to <Link href="/" className="underline">Homepage</Link>
           </CardDescription>
         </CardHeader>
         <CardContent>
