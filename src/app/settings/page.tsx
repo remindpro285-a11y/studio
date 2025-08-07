@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,6 +28,7 @@ import { supabase } from "@/lib/supabase";
 import React from "react";
 import { Loader2, Save } from "lucide-react";
 import Link from "next/link";
+import { saveSettings, type SettingsFormValues } from "./actions";
 
 
 const settingsSchema = z.object({
@@ -39,20 +41,6 @@ const settingsSchema = z.object({
   fees_template_name: z.string().min(1, "Fees Template Name is required."),
 });
 
-type SettingsFormValues = z.infer<typeof settingsSchema>;
-
-async function saveSettings(data: SettingsFormValues) {
-    'use server';
-    try {
-        const { error } = await supabase.from('settings').upsert(data, { onConflict: 'id' });
-        if (error) {
-            throw error;
-        }
-        return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
 
 export default function SettingsPage() {
     const { toast } = useToast();
