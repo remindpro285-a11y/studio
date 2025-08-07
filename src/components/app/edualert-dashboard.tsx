@@ -250,9 +250,12 @@ export function EduAlertDashboard() {
     }
   };
   
-  const requiredFields = MAPPING_FIELDS[mode].map(f => f.key);
-  const mappedFields = Object.keys(mappings).filter(k => mappings[k]);
-  const allRequiredMapped = requiredFields.every(rf => mappedFields.includes(rf));
+  const allRequiredMapped = React.useMemo(() => {
+    const requiredFields = MAPPING_FIELDS[mode].map(f => f.key);
+    const mappedFields = Object.keys(mappings).filter(k => mappings[k]);
+    return requiredFields.every(rf => mappedFields.includes(rf));
+  }, [mappings, mode]);
+
 
   const handleConfirmMapping = () => {
     if (!allRequiredMapped) {
