@@ -33,7 +33,7 @@ export async function testWhaConnection() {
         // 1. Fetch ALL required settings from the database.
         const { data: settings, error: fetchError } = await supabase
             .from('settings')
-            .select('waba_id, access_token, endpoint')
+            .select('phone_number_id, access_token, endpoint')
             .eq('id', 1)
             .single();
 
@@ -43,15 +43,14 @@ export async function testWhaConnection() {
         }
 
         // 3. Explicitly validate that all required credentials exist and are valid strings.
-        if (!settings || !settings.waba_id || typeof settings.waba_id !== 'string' || settings.waba_id.trim() === '' || !settings.access_token || typeof settings.access_token !== 'string' || settings.access_token.trim() === '' || !settings.endpoint || typeof settings.endpoint !== 'string' || settings.endpoint.trim() === '') {
-            throw new Error("Settings not found or are incomplete. Please save a valid WABA ID, Access Token, and Endpoint URL first.");
+        if (!settings || !settings.phone_number_id || typeof settings.phone_number_id !== 'string' || settings.phone_number_id.trim() === '' || !settings.access_token || typeof settings.access_token !== 'string' || settings.access_token.trim() === '' || !settings.endpoint || typeof settings.endpoint !== 'string' || settings.endpoint.trim() === '') {
+            throw new Error("Settings not found or are incomplete. Please save a valid Phone Number ID, Access Token, and Endpoint URL first.");
         }
 
-        const { waba_id, access_token, endpoint } = settings;
+        const { phone_number_id, access_token, endpoint } = settings;
         
-        // 4. Construct the correct URL for fetching business profiles.
-        // This handles both direct Facebook URLs and proxy URLs like getbotify correctly.
-        const url = `${endpoint.replace(/\/$/, '')}/${waba_id}/business_profiles?fields=name`;
+        // 4. Construct the correct URL for fetching the WhatsApp business profile.
+        const url = `${endpoint.replace(/\/$/, '')}/${phone_number_id}/whatsapp_business_profile?fields=name`;
 
         const response = await fetch(url, {
             headers: {
@@ -68,7 +67,7 @@ export async function testWhaConnection() {
         
         const businessName = responseData.data?.[0]?.name;
         if (!businessName) {
-            throw new Error("Connection successful, but could not retrieve business name. Please check your WABA ID.");
+            throw new Error("Connection successful, but could not retrieve business name. Please check your Phone Number ID.");
         }
 
         return { success: true, data: responseData };
