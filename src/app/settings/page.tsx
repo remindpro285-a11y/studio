@@ -70,7 +70,10 @@ export default function SettingsPage() {
             .single();
 
         if (data) {
-            form.reset(data);
+            const formData = Object.fromEntries(
+                Object.entries(data).map(([key, value]) => [key, value === null ? "" : value])
+            );
+            form.reset(formData as SettingsFormValues);
         } else if(error && error.code !== 'PGRST116') { // Ignore no rows found error
              toast({
                 variant: "destructive",
@@ -130,7 +133,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center p-4 sm:p-8 bg-gray-50">
+    <main className="flex min-h-screen w-full flex-col items-center justify-center p-4 sm:p-8 bg-background">
       <Card className="w-full max-w-2xl shadow-2xl">
         <CardHeader>
           <CardTitle className="font-headline text-3xl">API Settings</CardTitle>
