@@ -120,6 +120,12 @@ export function EduAlertDashboard() {
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
+    defaultValues: {
+      feeName: "",
+      examName: "",
+      templateId: "",
+      dueDate: undefined,
+    }
   });
   
   const templateId = form.watch("templateId");
