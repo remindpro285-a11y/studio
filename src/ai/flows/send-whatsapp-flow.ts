@@ -28,21 +28,21 @@ export async function sendWhatsAppMessage(input: SendWhatsAppMessageInput): Prom
    try {
       const { data: settings, error: fetchError } = await supabase
         .from('settings')
-        .select('phone_number_id, access_token')
+        .select('phone_number_id, access_token, endpoint')
         .eq('id', 1)
         .single();
 
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found, which we handle next
+      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
         throw new Error(`Database Error: ${fetchError.message}`);
       }
       
-      if (!settings || !settings.phone_number_id || !settings.access_token || typeof settings.access_token !== 'string' || settings.access_token.trim() === '') {
-        throw new Error('API settings not found or are incomplete in the database. Please configure a valid Phone Number ID and Access Token on the settings page.');
+      if (!settings || !settings.phone_number_id || !settings.access_token || typeof settings.access_token !== 'string' || settings.access_token.trim() === '' || !settings.endpoint) {
+        throw new Error('API settings not found or are incomplete in the database. Please configure a valid Phone Number ID, Access Token, and Endpoint on the settings page.');
       }
 
-      const { phone_number_id, access_token } = settings;
+      const { phone_number_id, access_token, endpoint } = settings;
 
-      const url = `https://graph.facebook.com/v19.0/${phone_number_id}/messages`;
+      const url = `${endpoint.replace(/\/$/, '')}/v19.0/${phone_number_id}/messages`;
       
       const payload = {
         messaging_product: 'whatsapp',
@@ -84,6 +84,7 @@ export async function sendWhatsAppMessage(input: SendWhatsAppMessageInput): Prom
       return { success: true };
 
     } catch (error: any) {
+      console.error("Error sending WhatsApp message:", error);
       return { success: false, error: error.message };
     }
 }
