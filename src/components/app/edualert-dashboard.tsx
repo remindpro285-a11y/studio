@@ -192,16 +192,10 @@ export function EduAlertDashboard() {
     const newMappings: Record<string, string> = {};
     const currentRequiredKeys = MAPPING_FIELDS[mode].map(f => f.key);
     
-    // Preserve existing valid mappings
-    for(const key of currentRequiredKeys) {
-        if(mappings[key] && headers.includes(mappings[key])) {
-            newMappings[key] = mappings[key];
-        }
-    }
-    
-    // Auto-map for any unmapped required fields
+    // Auto-map based on headers
     headers.forEach(header => {
         const bestMatch = findBestMatch(header, MAPPING_FIELDS[mode]);
+        // Avoid overwriting existing mappings and ensure one-to-one mapping
         if (bestMatch && !newMappings[bestMatch] && !Object.values(newMappings).includes(header)) {
              newMappings[bestMatch] = header;
         }
@@ -266,8 +260,8 @@ export function EduAlertDashboard() {
   };
   
   const allRequiredMapped = React.useMemo(() => {
-    const requiredFields = MAPPING_FIELDS[mode].map(f => f.key);
-    return requiredFields.every(rf => mappings[rf] && headers.includes(mappings[rf]));
+    const requiredKeys = MAPPING_FIELDS[mode].map(f => f.key);
+    return requiredKeys.every(key => mappings[key] && headers.includes(mappings[key]));
   }, [mappings, mode, headers]);
 
 
