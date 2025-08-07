@@ -99,8 +99,8 @@ const MAPPING_FIELDS: Record<Mode, { key: string; label: string; searchTerms: st
 };
 
 const PREVIEW_TEMPLATES: Record<Mode, string> = {
-    fees: "Hello! This is a gentle reminder that {{studentAndClass}}'s {{feeName}} is pending and is due on {{dueDate}}. Due Amount:{{feeAmount}} .Kindly take care of it at your convenience.",
-    grades: "Hello Parent, here is the report for {{studentAndClass}} for the {{examName}} examination:\n\nSubject-wise Grades:\n{{gradesList}}"
+    fees: "Hello! This is a gentle reminder that {{1}}'s {{2}} is pending and is due on {{3}}. Due Amount:{{4}} .Kindly take care of it at your convenience.",
+    grades: "Hello Parent, here is the report for {{1}} for the {{2}} examination:\n\nSubject-wise Grades:\n{{3}}"
 };
 
 const FormSchema = z.object({
@@ -308,21 +308,22 @@ function EduAlertDashboard() {
         const firstRow = finalData[0];
         let message = PREVIEW_TEMPLATES[mode];
 
-        const studentAndClass = `${firstRow.studentName || '[Student]'} (${firstRow.className || '[Class]'})`;
-        message = message.replace(/{{studentAndClass}}/g, studentAndClass);
-
         if (mode === 'fees') {
-            message = message.replace(/{{feeName}}/g, feeName || '[Fee Name]');
-            message = message.replace(/{{feeAmount}}/g, firstRow.feeAmount || '[N/A]');
-            message = message.replace(/{{dueDate}}/g, dueDate ? format(dueDate, 'PPP') : '[Due Date]');
+            const studentAndClass = `${firstRow.studentName || '[Student]'} (${firstRow.className || '[Class]'})`;
+            message = message.replace(/{{1}}/g, studentAndClass);
+            message = message.replace(/{{2}}/g, feeName || '[Fee Name]');
+            message = message.replace(/{{3}}/g, dueDate ? format(dueDate, 'PPP') : '[Due Date]');
+            message = message.replace(/{{4}}/g, firstRow.feeAmount || '[N/A]');
         } else {
+             const studentAndClass = `${firstRow.studentName || '[Student]'} (${firstRow.className || '[Class]'})`;
              const mappedHeaders = Object.values(mappings);
              const gradesList = Object.entries(firstRow.rawData)
                 .filter(([header]) => !mappedHeaders.includes(header))
                 .map(([subject, grade]) => `${subject}:${grade}`)
                 .join('\n');
-            message = message.replace(/{{gradesList}}/g, gradesList || 'No grades available.');
-            message = message.replace(/{{examName}}/g, examName || '[Exam Name]');
+            message = message.replace(/{{1}}/g, studentAndClass);
+            message = message.replace(/{{2}}/g, examName || '[Exam Name]');
+            message = message.replace(/{{3}}/g, gradesList || 'No grades available.');
         }
         return message;
 
