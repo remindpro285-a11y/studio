@@ -14,7 +14,6 @@ import {
   Send,
   RefreshCcw,
   DollarSign,
-  Settings,
   MessageSquareText,
   Check,
   FileCheck2,
@@ -26,7 +25,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import * as XLSX from "xlsx";
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -129,6 +128,7 @@ const findBestMatch = (header: string, fields: typeof MAPPING_FIELDS[Mode]) => {
 export function EduAlertDashboard() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialMode = searchParams.get('mode') === 'grades' ? 'grades' : 'fees';
 
   const [step, setStep] = React.useState(0);
@@ -184,7 +184,15 @@ export function EduAlertDashboard() {
   
   React.useEffect(() => {
     setMode(initialMode);
-  }, [initialMode]);
+    const newMappings: Record<string, string> = {};
+    headers.forEach(header => {
+        const bestMatch = findBestMatch(header, MAPPING_FIELDS[initialMode]);
+        if (bestMatch && !Object.values(newMappings).includes(header)) {
+            newMappings[bestMatch] = header;
+        }
+    });
+    setMappings(newMappings);
+  }, [initialMode, headers]);
 
   const feeName = form.watch("feeName");
   const dueDate = form.watch("dueDate");
@@ -252,8 +260,7 @@ export function EduAlertDashboard() {
   
   const allRequiredMapped = React.useMemo(() => {
     const requiredFields = MAPPING_FIELDS[mode].map(f => f.key);
-    const mappedValues = Object.values(mappings);
-    return requiredFields.every(rf => mappings[rf] && mappedValues.includes(mappings[rf]));
+    return requiredFields.every(rf => mappings[rf]);
   }, [mappings, mode]);
 
 
@@ -381,10 +388,13 @@ export function EduAlertDashboard() {
                 <div>
                     <CardTitle className="font-sans text-3xl font-bold">Send Notifications</CardTitle>
                     <CardDescription>
-                    Send Fee and Grade Notifications via WhatsApp Seamlessly. Go to <Link href="/settings" className="underline">Settings</Link>
+                    Send Fee and Grade Notifications via WhatsApp Seamlessly.
                     </CardDescription>
                 </div>
                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                        <Link href="/settings"><MessageSquareText className="mr-2 h-4 w-4" /> Go to Settings</Link>
+                    </Button>
                     {step > 0 && <Button variant="outline" size="sm" onClick={reset}><RefreshCcw className="mr-2 h-4 w-4" /> Start Over</Button>}
                 </div>
             </div>
@@ -392,14 +402,14 @@ export function EduAlertDashboard() {
         
         <CardContent>
              <div className="mb-8 p-4">
-                <ol className="flex items-center justify-center w-full">
+                 <ol className="relative flex w-full items-center justify-between">
                     {STEPS.map((s, index) => (
-                        <li key={s.id} className={cn("relative flex w-full items-center", { "after:content-[''] after:w-full after:h-1 after:border-b after:border-primary/50 after:border-1 after:inline-block": index < STEPS.length - 1 })}>
-                           <div className="flex flex-col items-center justify-center w-full">
+                        <li key={s.id} className={cn("flex items-center", { "w-full": index < STEPS.length - 1 })}>
+                           <div className="flex flex-col items-center justify-start relative">
                              <button
                                onClick={() => s.id < step && navigateToStep(s.id)}
                                disabled={s.id >= step}
-                               className="flex flex-col items-center justify-center w-16 h-16 rounded-full shrink-0 disabled:cursor-not-allowed group"
+                               className="flex flex-col items-center justify-center w-16 h-16 rounded-full shrink-0 disabled:cursor-not-allowed group z-10"
                              >
                               <span className={cn(
                                   "flex items-center justify-center w-12 h-12 rounded-full shrink-0 transition-colors duration-300",
@@ -408,10 +418,11 @@ export function EduAlertDashboard() {
                                   {step > s.id ? <Check className="w-6 h-6"/> : <s.icon className="w-6 h-6"/>}
                               </span>
                              </button>
-                             <div className="mt-2 text-center absolute top-16">
+                             <div className="mt-2 text-center absolute top-16 w-32">
                                   <h3 className={cn("font-medium text-sm", step >= s.id && "text-foreground")}>{s.title}</h3>
                               </div>
                            </div>
+                           {index < STEPS.length - 1 && <div className="h-1 w-full bg-border flex-1 -ml-4 -mr-4" />}
                         </li>
                     ))}
                 </ol>
@@ -461,15 +472,7 @@ export function EduAlertDashboard() {
                         <p className="text-muted-foreground">Match your sheet's columns to the required fields. We've tried to guess for you!</p>
                         <Tabs value={mode} onValueChange={(v) => {
                             const newMode = v as Mode;
-                            setMode(newMode);
-                            const newMappings: Record<string, string> = {};
-                            headers.forEach(header => {
-                                const bestMatch = findBestMatch(header, MAPPING_FIELDS[newMode]);
-                                if (bestMatch && !Object.values(newMappings).includes(header)) {
-                                    newMappings[bestMatch] = header;
-                                }
-                            });
-                            setMappings(newMappings);
+                            router.push(`/send?mode=${newMode}`, { scroll: false });
                         }} className="w-fit mt-4">
                             <TabsList>
                                 <TabsTrigger value="fees"><DollarSign className="mr-2 h-4 w-4" />Fee Notifications</TabsTrigger>
