@@ -22,6 +22,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import * as XLSX from "xlsx";
+import { useSearchParams } from 'next/navigation';
 
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -123,8 +124,11 @@ const findBestMatch = (header: string, fields: typeof MAPPING_FIELDS[Mode]) => {
 
 export function EduAlertDashboard() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const initialMode = searchParams.get('mode') === 'grades' ? 'grades' : 'fees';
+
   const [step, setStep] = React.useState(0);
-  const [mode, setMode] = React.useState<Mode>("fees");
+  const [mode, setMode] = React.useState<Mode>(initialMode);
   const [file, setFile] = React.useState<File | null>(null);
   const [data, setData] = React.useState<Record<string, any>[]>([]);
   const [headers, setHeaders] = React.useState<string[]>([]);
@@ -166,6 +170,10 @@ export function EduAlertDashboard() {
     }
     fetchSettings();
   }, [toast]);
+  
+  React.useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   const feeName = form.watch("feeName");
   const dueDate = form.watch("dueDate");
@@ -304,7 +312,7 @@ export function EduAlertDashboard() {
     toast({
         title: "Success!",
         description: `${finalData.length} notifications have been queued for delivery.`,
-        className: "bg-primary text-primary-foreground"
+        className: "bg-accent text-accent-foreground"
     });
   };
 
@@ -329,19 +337,14 @@ export function EduAlertDashboard() {
         <CardHeader>
             <div className="flex justify-between items-start">
                 <div>
-                    <CardTitle className="font-headline text-3xl">EduAlert</CardTitle>
+                    <CardTitle className="font-sans text-3xl font-bold">Send Notifications</CardTitle>
                     <CardDescription>
                     Send Fee and Grade Notifications via WhatsApp Seamlessly
                     </CardDescription>
                 </div>
                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" asChild><Link href="/"><ArrowLeft className="mr-2 h-4 w-4" />Back to Dashboard</Link></Button>
                     {step > 0 && <Button variant="outline" size="sm" onClick={reset}><RefreshCcw className="mr-2 h-4 w-4" /> Start Over</Button>}
-                    <Button variant="outline" size="icon" asChild>
-                        <Link href="/settings">
-                            <Settings className="h-4 w-4" />
-                            <span className="sr-only">Settings</span>
-                        </Link>
-                    </Button>
                 </div>
             </div>
         </CardHeader>
@@ -353,7 +356,7 @@ export function EduAlertDashboard() {
                         <li key={s.id} className={cn("flex w-full items-center", { "after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-300 after:border-2 after:inline-block": index < STEPS.length - 1 })}>
                             <span className={cn(
                                 "flex items-center justify-center w-10 h-10 rounded-full shrink-0",
-                                step > s.id ? "bg-primary text-primary-foreground" : (step === s.id ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground")
+                                step > s.id ? "bg-primary text-primary-foreground" : (step === s.id ? "bg-blue-600 text-white" : "bg-muted text-muted-foreground")
                             )}>
                                 {step > s.id ? <Check className="w-5 h-5"/> : s.id + 1}
                             </span>
@@ -395,7 +398,7 @@ export function EduAlertDashboard() {
             {step === 1 && (
                 <div className="space-y-6">
                     <div>
-                        <h3 className="text-xl font-semibold font-headline">Map Data Columns</h3>
+                        <h3 className="text-xl font-semibold">Map Data Columns</h3>
                         <p className="text-muted-foreground">Match your sheet's columns to the required fields. We've tried to guess for you!</p>
                         <Tabs value={mode} onValueChange={(v) => {
                             const newMode = v as Mode;
@@ -463,7 +466,7 @@ export function EduAlertDashboard() {
                     </Alert>
                      <div className="flex justify-between items-center pt-4">
                         <Button variant="outline" onClick={() => setStep(0)}><ArrowLeft className="mr-2 h-4 w-4"/> Back</Button>
-                        <Button onClick={handleConfirmMapping} disabled={!currentTemplateName || isLoadingSettings} className="bg-primary hover:bg-primary/90">
+                        <Button onClick={handleConfirmMapping} disabled={!currentTemplateName || isLoadingSettings}>
                             Confirm Mappings & Preview <ChevronRight className="ml-2 h-4 w-4"/>
                         </Button>
                     </div>
@@ -475,7 +478,7 @@ export function EduAlertDashboard() {
                     <form className="space-y-8">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className="lg:col-span-1 space-y-6">
-                                <h3 className="text-xl font-semibold font-headline">Final Configuration</h3>
+                                <h3 className="text-xl font-semibold">Final Configuration</h3>
                                 <p className="text-sm text-muted-foreground">Fill in the remaining details for your notification template.</p>
                                 {mode === "fees" && (
                                 <>
@@ -486,7 +489,7 @@ export function EduAlertDashboard() {
                                             <FormItem>
                                                 <FormLabel>Fee Name</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="e.g., Annual Tuition Fee" {...field} />
+                                                    <Input placeholder="e.g., Annual Tuition Fee" {...field} value={field.value ?? ""} />
                                                 </FormControl>
                                             </FormItem>
                                         )}
@@ -524,7 +527,7 @@ export function EduAlertDashboard() {
                                             <FormItem>
                                                 <FormLabel>Exam Name</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="e.g., Mid-Term Exams" {...field} />
+                                                    <Input placeholder="e.g., Mid-Term Exams" {...field} value={field.value ?? ""} />
                                                 </FormControl>
                                             </FormItem>
                                         )}
@@ -533,7 +536,7 @@ export function EduAlertDashboard() {
                             </div>
                             <div className="lg:col-span-2">
                                 <div className="flex justify-between items-center mb-2">
-                                    <h3 className="text-xl font-semibold font-headline">Data Preview</h3>
+                                    <h3 className="text-xl font-semibold">Data Preview</h3>
                                     <div className="text-sm text-muted-foreground">
                                         Page {currentPage} of {totalPages}
                                     </div>
@@ -586,7 +589,7 @@ export function EduAlertDashboard() {
 
                         {paginatedData.length > 0 && (
                             <div className="mt-6">
-                                <h3 className="text-xl font-semibold font-headline mb-2">Example Message Preview</h3>
+                                <h3 className="text-xl font-semibold mb-2">Example Message Preview</h3>
                                 <Card className="bg-muted/50">
                                     <CardContent className="p-4">
                                         <div className="flex items-start gap-3">
@@ -614,5 +617,3 @@ export function EduAlertDashboard() {
     </Card>
   );
 }
-
-    
