@@ -30,15 +30,15 @@ export async function saveSettings(data: SettingsFormValues) {
 
 export async function testWhaConnection() {
     try {
-        // 1. Fetch ALL required settings from the database, including the endpoint.
+        // 1. Fetch ALL required settings from the database.
         const { data: settings, error: fetchError } = await supabase
             .from('settings')
-            .select('waba_id, access_token, endpoint') // Correctly fetch the endpoint
+            .select('waba_id, access_token, endpoint')
             .eq('id', 1)
             .single();
 
         // 2. Handle database errors during fetch.
-        if (fetchError && fetchError.code !== 'PGRST116') {
+        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
              throw new Error(`Database Error: ${fetchError.message}`);
         }
 
@@ -49,12 +49,9 @@ export async function testWhaConnection() {
 
         const { waba_id, access_token, endpoint } = settings;
         
-        // 4. Test connection by fetching business profiles using the user-provided endpoint.
-        // The URL is constructed by replacing the version and phone ID part of the path with the WABA ID.
-        // This makes it compatible with both direct Facebook URLs and proxy URLs like getbotify.
-        const baseUrl = endpoint.split('/v')[0]; // Get the base part of the URL.
-        const url = `${baseUrl.replace(/\/$/, '')}/${waba_id}/business_profiles?fields=name`;
-
+        // 4. Construct the correct URL for fetching business profiles.
+        // This handles both direct Facebook URLs and proxy URLs like getbotify correctly.
+        const url = `${endpoint.replace(/\/$/, '')}/${waba_id}/business_profiles?fields=name`;
 
         const response = await fetch(url, {
             headers: {
