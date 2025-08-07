@@ -49,8 +49,8 @@ export async function testWhaConnection() {
 
         const { phone_number_id, access_token, endpoint } = settings;
         
-        // 4. Construct the correct URL for fetching the WhatsApp business profile.
-        const url = `${endpoint.replace(/\/$/, '')}/${phone_number_id}/whatsapp_business_profile?fields=name`;
+        // 4. Construct the correct URL for fetching the WhatsApp business profile, including API version.
+        const url = `${endpoint.replace(/\/$/, '')}/v19.0/${phone_number_id}/whatsapp_business_profile?fields=name`;
 
         const response = await fetch(url, {
             headers: {
