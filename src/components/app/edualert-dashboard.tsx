@@ -19,7 +19,7 @@ import {
   Check,
   FileCheck2,
   ListOrdered,
-  SendHoriz,
+  SendHorizontal,
   CircleAlert,
 } from "lucide-react";
 import * as React from "react";
@@ -111,7 +111,7 @@ const FormSchema = z.object({
 const STEPS = [
   { id: 0, title: "Upload Data", description: "Select your Excel/CSV file", icon: FileCheck2 },
   { id: 1, title: "Map Columns", description: "Match your data to our fields", icon: ListOrdered },
-  { id: 2, title: "Preview & Send", description: "Confirm and send notifications", icon: SendHoriz },
+  { id: 2, title: "Preview & Send", description: "Confirm and send notifications", icon: SendHorizontal },
 ];
 
 const findBestMatch = (header: string, fields: typeof MAPPING_FIELDS[Mode]) => {
@@ -680,4 +680,3 @@ export function EduAlertDashboard() {
   );
 }
 
-    
