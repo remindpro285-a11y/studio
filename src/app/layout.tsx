@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'EduAlert',
+  title: 'Gnanamani',
   description: 'Send fee and grade notifications seamlessly.',
 };
 
