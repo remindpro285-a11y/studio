@@ -26,9 +26,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import React from "react";
-import { Loader2, Save, Plug } from "lucide-react";
+import { Loader2, Save, Plug, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import { saveSettings, type SettingsFormValues } from "./actions";
+import { saveSettings, testWhaConnection, type SettingsFormValues } from "./actions";
 
 
 const settingsSchema = z.object({
@@ -46,6 +46,7 @@ export default function SettingsPage() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isCheckingConnection, setIsCheckingConnection] = React.useState(false);
+    const [isTestingWha, setIsTestingWha] = React.useState(false);
 
 
   const form = useForm<SettingsFormValues>({
@@ -106,7 +107,7 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleTestConnection() {
+  async function handleTestDbConnection() {
     setIsCheckingConnection(true);
     try {
         const { error } = await supabase.from('settings').select('id').limit(1);
@@ -130,6 +131,29 @@ export default function SettingsPage() {
     } finally {
         setIsCheckingConnection(false);
     }
+  }
+
+  async function handleTestWhaConnection() {
+      setIsTestingWha(true);
+      // Save before testing to ensure we use the latest values
+      await form.handleSubmit(onSubmit)();
+
+      const result = await testWhaConnection();
+      if (result.success) {
+          const businessName = result.data.data?.[0]?.name;
+          toast({
+              title: "WhatsApp API Connected!",
+              description: businessName ? `Successfully connected to ${businessName}.` : "Connection successful.",
+              className: "bg-primary text-primary-foreground"
+          });
+      } else {
+          toast({
+              variant: "destructive",
+              title: "WhatsApp API Connection Failed",
+              description: result.error || "An unknown error occurred.",
+          });
+      }
+      setIsTestingWha(false);
   }
 
   return (
@@ -230,10 +254,14 @@ export default function SettingsPage() {
                     <Button variant="outline" asChild>
                         <Link href="/">Back to Dashboard</Link>
                     </Button>
-                    <div className="flex gap-2">
-                         <Button variant="secondary" type="button" onClick={handleTestConnection} disabled={isCheckingConnection}>
+                    <div className="flex gap-2 flex-wrap justify-end">
+                         <Button variant="secondary" type="button" onClick={handleTestDbConnection} disabled={isCheckingConnection}>
                             {isCheckingConnection ? <Loader2 className="animate-spin" /> : <Plug />}
-                            {isCheckingConnection ? "Checking..." : "Test Connection"}
+                            {isCheckingConnection ? "Checking..." : "Test DB"}
+                        </Button>
+                        <Button variant="secondary" type="button" onClick={handleTestWhaConnection} disabled={isTestingWha || isSubmitting}>
+                            {isTestingWha ? <Loader2 className="animate-spin" /> : <MessageSquare />}
+                            {isTestingWha ? "Testing..." : "Test WhatsApp API"}
                         </Button>
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting ? <Loader2 className="animate-spin" /> : <Save />}

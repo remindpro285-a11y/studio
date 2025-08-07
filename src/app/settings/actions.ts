@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from "zod";
@@ -22,6 +23,61 @@ export async function saveSettings(data: SettingsFormValues) {
             throw error;
         }
         return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function testWhaConnection() {
+    try {
+        const { data: settings, error: fetchError } = await supabase
+            .from('settings')
+            .select('*')
+            .eq('id', 1)
+            .single();
+
+        if (fetchError || !settings) {
+            throw new Error(fetchError?.message || "Settings not found. Please save your settings first.");
+        }
+
+        const { waba_id, access_token, endpoint } = settings;
+        
+        if (!waba_id || !access_token || !endpoint) {
+             throw new Error("WABA ID, Access Token, and Endpoint are required.");
+        }
+
+        // We can test the connection by trying to fetch the business profile name
+        const url = `${endpoint.replace(/\/$/, '')}/${waba_id}?fields=name`;
+
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${access_token}`
+            }
+        });
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+            const errorMessage = responseData.error?.message || `API Error: ${response.statusText}`;
+            throw new Error(errorMessage);
+        }
+        
+        // The API returns a list of profiles, we are interested in the first one
+        const businessProfilesUrl = `${endpoint.replace(/\/$/, '')}/${waba_id}/business_profiles`;
+        const profilesResponse = await fetch(businessProfilesUrl, {
+             headers: {
+                'Authorization': `Bearer ${access_token}`
+            }
+        });
+        const profilesData = await profilesResponse.json();
+
+        if(!profilesResponse.ok) {
+            const errorMessage = profilesData.error?.message || `API Error: ${profilesResponse.statusText}`;
+            throw new Error(`Could not fetch business profiles: ${errorMessage}`);
+        }
+
+        return { success: true, data: profilesData };
+
     } catch (error: any) {
         return { success: false, error: error.message };
     }
