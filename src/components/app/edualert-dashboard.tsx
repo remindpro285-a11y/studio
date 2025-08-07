@@ -130,7 +130,7 @@ export function EduAlertDashboard() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
-  const getModeFromParams = () => (searchParams.get('mode') === 'grades' ? 'grades' : 'fees') as Mode;
+  const getModeFromParams = React.useCallback(() => (searchParams.get('mode') === 'grades' ? 'grades' : 'fees') as Mode, [searchParams]);
 
   const [step, setStep] = React.useState(0);
   const [mode, setMode] = React.useState<Mode>(getModeFromParams());
@@ -186,7 +186,7 @@ export function EduAlertDashboard() {
   React.useEffect(() => {
     const newMode = getModeFromParams();
     setMode(newMode);
-  }, [searchParams]);
+  }, [searchParams, getModeFromParams]);
 
   React.useEffect(() => {
     const newMappings: Record<string, string> = {};
@@ -337,7 +337,10 @@ export function EduAlertDashboard() {
   const handleSend = async () => {
     setIsSending(true);
     toast({ title: "Dispatching Notifications", description: "Your messages are being sent..." });
+    
+    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 2000));
+    
     setIsSending(false);
     toast({
         title: "Success!",
