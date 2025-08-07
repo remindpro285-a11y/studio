@@ -129,10 +129,11 @@ export function EduAlertDashboard() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const initialMode = searchParams.get('mode') === 'grades' ? 'grades' : 'fees';
+  
+  const getModeFromParams = () => (searchParams.get('mode') === 'grades' ? 'grades' : 'fees') as Mode;
 
   const [step, setStep] = React.useState(0);
-  const [mode, setMode] = React.useState<Mode>(initialMode);
+  const [mode, setMode] = React.useState<Mode>(getModeFromParams());
   const [file, setFile] = React.useState<File | null>(null);
   const [data, setData] = React.useState<Record<string, any>[]>([]);
   const [headers, setHeaders] = React.useState<string[]>([]);
@@ -183,16 +184,31 @@ export function EduAlertDashboard() {
   }, [toast]);
   
   React.useEffect(() => {
-    setMode(initialMode);
+    const newMode = getModeFromParams();
+    setMode(newMode);
+  }, [searchParams]);
+
+  React.useEffect(() => {
     const newMappings: Record<string, string> = {};
+    const currentRequiredKeys = MAPPING_FIELDS[mode].map(f => f.key);
+    
+    // Preserve existing valid mappings
+    for(const key of currentRequiredKeys) {
+        if(mappings[key] && headers.includes(mappings[key])) {
+            newMappings[key] = mappings[key];
+        }
+    }
+    
+    // Auto-map for any unmapped required fields
     headers.forEach(header => {
-        const bestMatch = findBestMatch(header, MAPPING_FIELDS[initialMode]);
-        if (bestMatch && !Object.values(newMappings).includes(header)) {
-            newMappings[bestMatch] = header;
+        const bestMatch = findBestMatch(header, MAPPING_FIELDS[mode]);
+        if (bestMatch && !newMappings[bestMatch] && !Object.values(newMappings).includes(header)) {
+             newMappings[bestMatch] = header;
         }
     });
+
     setMappings(newMappings);
-  }, [initialMode, headers]);
+  }, [mode, headers]);
 
   const feeName = form.watch("feeName");
   const dueDate = form.watch("dueDate");
@@ -223,15 +239,6 @@ export function EduAlertDashboard() {
           const fileHeaders = Object.keys(jsonData[0]);
           setData(jsonData);
           setHeaders(fileHeaders);
-
-          const initialMappings: Record<string, string> = {};
-          fileHeaders.forEach(header => {
-              const bestMatch = findBestMatch(header, MAPPING_FIELDS[mode]);
-              if (bestMatch && !Object.values(initialMappings).includes(header)) {
-                  initialMappings[bestMatch] = header;
-              }
-          });
-          setMappings(initialMappings);
           
           navigateToStep(1);
 
@@ -260,8 +267,8 @@ export function EduAlertDashboard() {
   
   const allRequiredMapped = React.useMemo(() => {
     const requiredFields = MAPPING_FIELDS[mode].map(f => f.key);
-    return requiredFields.every(rf => mappings[rf]);
-  }, [mappings, mode]);
+    return requiredFields.every(rf => mappings[rf] && headers.includes(mappings[rf]));
+  }, [mappings, mode, headers]);
 
 
   const handleConfirmMapping = () => {
