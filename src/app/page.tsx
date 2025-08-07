@@ -98,11 +98,6 @@ const MAPPING_FIELDS: Record<Mode, { key: string; label: string; searchTerms: st
   ],
 };
 
-const PREVIEW_TEMPLATES: Record<Mode, string> = {
-    fees: "Hello! This is a gentle reminder that {{1}}'s {{2}} is pending and is due on {{3}}. Due Amount:{{4}} .Kindly take care of it at your convenience.",
-    grades: "Hello Parent, here is the report for {{1}} for the {{2}} examination:\n\nSubject-wise Grades:\n{{3}}"
-};
-
 const FormSchema = z.object({
   feeName: z.string().optional(),
   dueDate: z.date().optional(),
@@ -302,35 +297,8 @@ function EduAlertDashboard() {
     });
   }, [step, data, mappings]);
 
-    const exampleMessage = React.useMemo(() => {
-        if(step < 2 || finalData.length === 0) return "";
-
-        const firstRow = finalData[0];
-        let message = PREVIEW_TEMPLATES[mode];
-
-        if (mode === 'fees') {
-            const studentAndClass = `${firstRow.studentName || '[Student]'} (${firstRow.className || '[Class]'})`;
-            message = message.replace(/{{1}}/g, studentAndClass);
-            message = message.replace(/{{2}}/g, feeName || '[Fee Name]');
-            message = message.replace(/{{3}}/g, dueDate ? format(dueDate, 'PPP') : '[Due Date]');
-            message = message.replace(/{{4}}/g, firstRow.feeAmount || '[N/A]');
-        } else {
-             const studentAndClass = `${firstRow.studentName || '[Student]'} (${firstRow.className || '[Class]'})`;
-             const mappedHeaders = Object.values(mappings);
-             const gradesList = Object.entries(firstRow.rawData)
-                .filter(([header]) => !mappedHeaders.includes(header))
-                .map(([subject, grade]) => `${subject}:${grade}`)
-                .join('\n');
-            message = message.replace(/{{1}}/g, studentAndClass);
-            message = message.replace(/{{2}}/g, examName || '[Exam Name]');
-            message = message.replace(/{{3}}/g, gradesList || 'No grades available.');
-        }
-        return message;
-
-    }, [step, finalData, mode, feeName, dueDate, examName, mappings]);
-
   const sanitizeParam = (param: string) => {
-    return param.replace(/[\n\t]/g, ' ').replace(/ {5,}/g, '    ');
+    return String(param).replace(/[\n\t]/g, ' ').replace(/ {2,}/g, ' ');
   };
 
   const handleSend = async () => {
@@ -363,7 +331,7 @@ function EduAlertDashboard() {
                 const gradesList = Object.entries(row.rawData)
                     .filter(([header]) => !mappedHeaders.includes(header))
                     .map(([subject, grade]) => `${subject}: ${grade}`)
-                    .join(', '); // Use comma and space instead of newline
+                    .join(', ');
                 parameters = [
                      `${row.studentName} (${row.className})`,
                      examName || '',
@@ -371,7 +339,7 @@ function EduAlertDashboard() {
                 ];
             }
 
-            const sanitizedParams = parameters.map(p => sanitizeParam(String(p)));
+            const sanitizedParams = parameters.map(p => sanitizeParam(p));
 
             const input: SendWhatsAppMessageInput = {
                 recipientPhoneNumber: row.phoneNumber,
@@ -665,17 +633,13 @@ function EduAlertDashboard() {
                                         )}
                                     />
                                 )}
-                                 <div className="mt-6">
-                                    <h3 className="text-xl font-semibold mb-2">Live Message Preview</h3>
-                                    <Card className="bg-muted/50">
-                                        <CardContent className="p-4">
-                                            <div className="flex items-start gap-3">
-                                                <MessageSquareText className="w-5 h-5 mt-1 text-muted-foreground flex-shrink-0" />
-                                                <p className="text-sm text-foreground whitespace-pre-wrap">{exampleMessage}</p>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
+                                <Alert>
+                                    <MessageSquareText className="h-4 w-4"/>
+                                    <AlertTitle>Template to be Used</AlertTitle>
+                                    <AlertDescription>
+                                        Notifications will be sent using the WhatsApp template named <span className="font-semibold">{currentTemplateName}</span> from your settings. Please ensure it matches the parameters you've configured.
+                                    </AlertDescription>
+                                </Alert>
                             </div>
                             <div className="lg:col-span-2">
                                 <div className="flex justify-between items-center mb-2">
@@ -796,3 +760,5 @@ export default function HomePage() {
     </main>
   );
 }
+
+    
