@@ -252,8 +252,8 @@ export function EduAlertDashboard() {
   
   const allRequiredMapped = React.useMemo(() => {
     const requiredFields = MAPPING_FIELDS[mode].map(f => f.key);
-    const mappedFields = Object.keys(mappings).filter(k => mappings[k]);
-    return requiredFields.every(rf => mappedFields.includes(rf));
+    const mappedValues = Object.values(mappings);
+    return requiredFields.every(rf => mappings[rf] && mappedValues.includes(mappings[rf]));
   }, [mappings, mode]);
 
 
@@ -392,24 +392,26 @@ export function EduAlertDashboard() {
         
         <CardContent>
              <div className="mb-8 p-4">
-                <ol className="flex items-center w-full">
+                <ol className="flex items-center justify-center w-full">
                     {STEPS.map((s, index) => (
-                        <li key={s.id} className={cn("flex w-full items-center", { "after:content-[''] after:w-full after:h-1 after:border-b after:border-primary/50 after:border-1 after:inline-block": index < STEPS.length - 1 })}>
-                           <button
-                             onClick={() => s.id < step && navigateToStep(s.id)}
-                             disabled={s.id >= step}
-                             className="flex flex-col items-center justify-center w-16 h-16 rounded-full shrink-0 disabled:cursor-not-allowed group"
-                           >
-                            <span className={cn(
-                                "flex items-center justify-center w-12 h-12 rounded-full shrink-0 transition-colors duration-300",
-                                step > s.id ? "bg-primary text-primary-foreground group-hover:bg-primary/80" : (step === s.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-muted/80")
-                            )}>
-                                {step > s.id ? <Check className="w-6 h-6"/> : <s.icon className="w-6 h-6"/>}
-                            </span>
-                             <div className="mt-2 text-center">
-                                <h3 className={cn("font-medium text-sm", step >= s.id && "text-foreground")}>{s.title}</h3>
-                            </div>
-                           </button>
+                        <li key={s.id} className={cn("relative flex w-full items-center", { "after:content-[''] after:w-full after:h-1 after:border-b after:border-primary/50 after:border-1 after:inline-block": index < STEPS.length - 1 })}>
+                           <div className="flex flex-col items-center justify-center w-full">
+                             <button
+                               onClick={() => s.id < step && navigateToStep(s.id)}
+                               disabled={s.id >= step}
+                               className="flex flex-col items-center justify-center w-16 h-16 rounded-full shrink-0 disabled:cursor-not-allowed group"
+                             >
+                              <span className={cn(
+                                  "flex items-center justify-center w-12 h-12 rounded-full shrink-0 transition-colors duration-300",
+                                  step > s.id ? "bg-primary text-primary-foreground group-hover:bg-primary/80" : (step === s.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-muted/80")
+                              )}>
+                                  {step > s.id ? <Check className="w-6 h-6"/> : <s.icon className="w-6 h-6"/>}
+                              </span>
+                             </button>
+                             <div className="mt-2 text-center absolute top-16">
+                                  <h3 className={cn("font-medium text-sm", step >= s.id && "text-foreground")}>{s.title}</h3>
+                              </div>
+                           </div>
                         </li>
                     ))}
                 </ol>
@@ -682,4 +684,3 @@ export function EduAlertDashboard() {
     </Card>
   );
 }
-
