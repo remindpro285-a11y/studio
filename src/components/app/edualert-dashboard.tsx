@@ -72,6 +72,7 @@ import Link from "next/link";
 
 type Mode = "fees" | "grades";
 
+const ITEMS_PER_PAGE = 5;
 
 const MAPPING_FIELDS: Record<Mode, { key: string; label: string }[]> = {
   fees: [
@@ -113,11 +114,9 @@ export function EduAlertDashboard() {
   const [data, setData] = React.useState<Record<string, any>[]>([]);
   const [headers, setHeaders] = React.useState<string[]>([]);
   const [mappings, setMappings] = React.useState<Record<string, string>>({});
-  const [finalData, setFinalData] = React.useState<Record<string, string>[]>([]);
   const [isSending, setIsSending] = React.useState(false);
   const [currentPage, setCurrentPage] = React.useState(1);
   const [isParsing, setIsParsing] = React.useState(false);
-  const ITEMS_PER_PAGE = 5;
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -192,45 +191,44 @@ export function EduAlertDashboard() {
     }
     setStep(2);
     form.setValue("templateId", TEMPLATES[mode][0].id);
+    setCurrentPage(1);
   };
   
-  React.useEffect(() => {
-    if (step < 2) return;
+    const finalData = React.useMemo(() => {
+        if (step < 2) return [];
 
-    const template = TEMPLATES[mode].find(t => t.id === templateId);
-    if (!template) return;
-    
-    const newFinalData = data.map(row => {
-        let message = template.text;
-        const newRow: Record<string, string> = {};
+        const template = TEMPLATES[mode].find(t => t.id === templateId);
+        if (!template) return [];
 
-        Object.entries(mappings).forEach(([mapKey, header]) => {
-            newRow[mapKey] = String(row[header] ?? '');
+        return data.map(row => {
+            let message = template.text;
+            const newRow: Record<string, string> = {};
+
+            Object.entries(mappings).forEach(([mapKey, header]) => {
+                newRow[mapKey] = String(row[header] ?? '');
+            });
+
+            message = message.replace(/{{studentName}}/g, newRow.studentName || '[N/A]');
+            message = message.replace(/{{className}}/g, newRow.className || '[N/A]');
+
+            if (mode === 'fees') {
+                message = message.replace(/{{feeName}}/g, feeName || '[Fee Name]');
+                message = message.replace(/{{feeAmount}}/g, newRow.feeAmount || '[N/A]');
+                message = message.replace(/{{dueDate}}/g, dueDate ? format(dueDate, 'PPP') : '[Due Date]');
+            } else {
+                const mappedHeaders = Object.values(mappings);
+                const gradesList = Object.entries(row)
+                    .filter(([header]) => !mappedHeaders.includes(header))
+                    .map(([subject, grade]) => `- ${subject}: ${grade}`)
+                    .join('\n');
+
+                message = message.replace(/{{gradesList}}/g, gradesList || 'No grades available.');
+                message = message.replace(/{{examName}}/g, examName || '[Exam Name]');
+            }
+
+            return { ...newRow, phoneNumber: newRow.phoneNumber, message };
         });
-
-        message = message.replace(/{{studentName}}/g, newRow.studentName || '[N/A]');
-        message = message.replace(/{{className}}/g, newRow.className || '[N/A]');
-        
-        if (mode === 'fees') {
-            message = message.replace(/{{feeName}}/g, feeName || '[Fee Name]');
-            message = message.replace(/{{feeAmount}}/g, newRow.feeAmount || '[N/A]');
-            message = message.replace(/{{dueDate}}/g, dueDate ? format(dueDate, 'PPP') : '[Due Date]');
-        } else {
-            const mappedHeaders = Object.values(mappings);
-            const gradesList = Object.entries(row)
-                .filter(([header]) => !mappedHeaders.includes(header))
-                .map(([subject, grade]) => `- ${subject}: ${grade}`)
-                .join('\n');
-            
-            message = message.replace(/{{gradesList}}/g, gradesList || 'No grades available.');
-            message = message.replace(/{{examName}}/g, examName || '[Exam Name]');
-        }
-        
-        return { ...newRow, phoneNumber: newRow.phoneNumber, message };
-    });
-    setFinalData(newFinalData);
-    setCurrentPage(1);
-  }, [data, mappings, step, mode, templateId, feeName, dueDate, examName]);
+    }, [step, mode, templateId, data, mappings, feeName, dueDate, examName]);
 
   const handleSend = async () => {
     setIsSending(true);
@@ -250,7 +248,6 @@ export function EduAlertDashboard() {
     setData([]);
     setHeaders([]);
     setMappings({});
-    setFinalData([]);
     form.reset();
   };
 
