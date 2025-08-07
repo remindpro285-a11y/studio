@@ -30,23 +30,26 @@ export async function saveSettings(data: SettingsFormValues) {
 
 export async function testWhaConnection() {
     try {
+        // 1. Fetch settings from the database
         const { data: settings, error: fetchError } = await supabase
             .from('settings')
             .select('waba_id, access_token')
             .eq('id', 1)
             .single();
 
-        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
+        // 2. Handle potential database errors during fetch
+        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found, which is a valid case we handle next.
              throw new Error(`Database Error: ${fetchError.message}`);
         }
 
-        if (!settings || !settings.waba_id || !settings.access_token) {
-            throw new Error("Settings not found or are incomplete. Please save your WABA ID and Access Token first.");
+        // 3. Explicitly validate the fetched settings and credentials
+        if (!settings || !settings.waba_id || typeof settings.waba_id !== 'string' || settings.waba_id.trim() === '' || !settings.access_token || typeof settings.access_token !== 'string' || settings.access_token.trim() === '') {
+            throw new Error("Settings not found or are incomplete. Please save a valid WABA ID and Access Token first.");
         }
 
         const { waba_id, access_token } = settings;
         
-        // We test the connection by fetching the business profiles associated with the WABA ID
+        // 4. Test connection by fetching business profiles
         const url = `https://graph.facebook.com/v19.0/${waba_id}/business_profiles?fields=name`;
 
         const response = await fetch(url, {
@@ -65,6 +68,7 @@ export async function testWhaConnection() {
         return { success: true, data: responseData };
 
     } catch (error: any) {
+        // 5. Return a structured error object
         return { success: false, error: error.message };
     }
 }
