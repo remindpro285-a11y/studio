@@ -20,11 +20,14 @@ import {
   ListOrdered,
   SendHorizontal,
   CircleAlert,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import * as XLSX from "xlsx";
+import { sendWhatsAppMessage, type SendWhatsAppMessageInput } from "@/ai/flows/send-whatsapp-flow";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -75,6 +78,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { SettingsFormValues } from "@/app/settings/actions";
 import { AnimatePresence, motion } from "framer-motion";
+import { Progress } from "@/components/ui/progress";
 
 type Mode = "fees" | "grades";
 
@@ -109,6 +113,7 @@ const STEPS = [
   { id: 0, title: "Upload Data", description: "Select your Excel/CSV file", icon: FileCheck2 },
   { id: 1, title: "Map Columns", description: "Match your data to our fields", icon: ListOrdered },
   { id: 2, title: "Preview & Send", description: "Confirm and send notifications", icon: SendHorizontal },
+  { id: 3, title: "Status", description: "View sending results", icon: CheckCircle },
 ];
 
 const findBestMatch = (header: string, fields: typeof MAPPING_FIELDS[Mode]) => {
@@ -122,6 +127,12 @@ const findBestMatch = (header: string, fields: typeof MAPPING_FIELDS[Mode]) => {
     }
     return undefined;
 };
+
+type SendStatus = {
+    studentName: string;
+    status: 'success' | 'failed';
+    message: string;
+}
 
 function EduAlertDashboard() {
   const { toast } = useToast();
@@ -138,6 +149,8 @@ function EduAlertDashboard() {
   const [settings, setSettings] = React.useState<SettingsFormValues | null>(null);
   const [isLoadingSettings, setIsLoadingSettings] = React.useState(true);
   const [direction, setDirection] = React.useState(1);
+  const [sendingProgress, setSendingProgress] = React.useState(0);
+  const [sendStatus, setSendStatus] = React.useState<SendStatus[]>([]);
 
 
   const form = useForm<z.infer<typeof FormSchema>>({
@@ -318,16 +331,66 @@ function EduAlertDashboard() {
 
   const handleSend = async () => {
     setIsSending(true);
-    toast({ title: "Dispatching Notifications", description: "Your messages are being sent..." });
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    setSendStatus([]);
+    setSendingProgress(0);
+    navigateToStep(3);
+
+    const templateName = mode === 'fees' ? settings?.fees_template_name : settings?.marks_template_name;
+    if(!templateName) {
+        toast({ variant: "destructive", title: "Error", description: "Template name not found in settings." });
+        setIsSending(false);
+        return;
+    }
+
+    for (let i = 0; i < finalData.length; i++) {
+        const row = finalData[i];
+        let parameters: string[] = [];
+
+        try {
+             if (mode === 'fees') {
+                parameters = [
+                    `${row.studentName} (${row.className})`,
+                    feeName || '',
+                    dueDate ? format(dueDate, 'PPP') : '',
+                    row.feeAmount,
+                ];
+            } else {
+                const mappedHeaders = Object.values(mappings);
+                const gradesList = Object.entries(row.rawData)
+                    .filter(([header]) => !mappedHeaders.includes(header))
+                    .map(([subject, grade]) => `${subject}: ${grade}`)
+                    .join('\n');
+                parameters = [
+                     `${row.studentName} (${row.className})`,
+                     examName || '',
+                     gradesList,
+                ];
+            }
+
+            const input: SendWhatsAppMessageInput = {
+                recipientPhoneNumber: row.phoneNumber,
+                templateName,
+                parameters
+            };
+
+            const result = await sendWhatsAppMessage(input);
+            if (result.success) {
+                setSendStatus(prev => [...prev, { studentName: row.studentName, status: 'success', message: 'Sent successfully' }]);
+            } else {
+                setSendStatus(prev => [...prev, { studentName: row.studentName, status: 'failed', message: result.error || 'Unknown error' }]);
+            }
+        } catch (error: any) {
+             setSendStatus(prev => [...prev, { studentName: row.studentName, status: 'failed', message: error.message || 'A client-side error occurred.' }]);
+        }
+        
+        setSendingProgress(((i + 1) / finalData.length) * 100);
+    }
     
     setIsSending(false);
     toast({
-        title: "Success!",
-        description: `${finalData.length} notifications have been queued for delivery.`,
-        className: "bg-accent text-accent-foreground"
+        title: "Process Complete",
+        description: `Finished sending notifications. See status below.`,
+        className: "bg-primary text-primary-foreground"
     });
   };
 
@@ -338,6 +401,8 @@ function EduAlertDashboard() {
     setHeaders([]);
     setMappings({});
     form.reset();
+    setSendStatus([]);
+    setSendingProgress(0);
   };
 
   const paginatedData = finalData.slice(
@@ -388,7 +453,7 @@ function EduAlertDashboard() {
                     <Button variant="outline" size="sm" asChild>
                         <Link href="/settings"><MessageSquareText className="mr-2 h-4 w-4" /> Go to Settings</Link>
                     </Button>
-                    {step > 0 && <Button variant="outline" size="sm" onClick={reset}><RefreshCcw className="mr-2 h-4 w-4" /> Start Over</Button>}
+                    <Button variant="outline" size="sm" onClick={reset}><RefreshCcw className="mr-2 h-4 w-4" /> Start Over</Button>
                 </div>
             </div>
         </CardHeader>
@@ -400,8 +465,8 @@ function EduAlertDashboard() {
                         <li key={s.id} className={cn("flex items-center", { "w-full": index < STEPS.length - 1 })}>
                            <div className="flex flex-col items-center justify-start relative">
                              <button
-                               onClick={() => s.id < step && navigateToStep(s.id)}
-                               disabled={s.id >= step}
+                               onClick={() => s.id < step && !isSending && navigateToStep(s.id)}
+                               disabled={s.id >= step || isSending}
                                className="flex flex-col items-center justify-center w-16 h-16 rounded-full shrink-0 disabled:cursor-not-allowed group z-10"
                              >
                               <span className={cn(
@@ -670,6 +735,46 @@ function EduAlertDashboard() {
                         </div>
                     </form>
                 </Form>
+            )}
+
+             {step === 3 && (
+                <div className="space-y-6">
+                    <div>
+                        <h3 className="text-xl font-semibold">Sending Notifications</h3>
+                        <p className="text-muted-foreground">
+                            {isSending ? `Processing message ${sendStatus.length} of ${finalData.length}...` : `Finished sending all ${finalData.length} notifications.`}
+                        </p>
+                    </div>
+                     <Progress value={sendingProgress} className="w-full" />
+                     <div className="max-h-96 overflow-y-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Student Name</TableHead>
+                                    <TableHead>Details</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                             <TableBody>
+                                {sendStatus.map((result, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell>
+                                            {result.status === 'success' ? 
+                                                <CheckCircle className="h-5 w-5 text-green-500" /> : 
+                                                <XCircle className="h-5 w-5 text-red-500" />
+                                            }
+                                        </TableCell>
+                                        <TableCell className="font-medium">{result.studentName}</TableCell>
+                                        <TableCell className="text-xs">{result.message}</TableCell>
+                                    </TableRow>
+                                ))}
+                             </TableBody>
+                        </Table>
+                     </div>
+                      <div className="flex justify-end pt-4">
+                        <Button onClick={reset}><RefreshCcw className="mr-2 h-4 w-4" /> Send Another Batch</Button>
+                    </div>
+                </div>
             )}
             </motion.div>
           </AnimatePresence>
