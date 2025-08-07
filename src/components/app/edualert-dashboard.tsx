@@ -16,6 +16,7 @@ import {
   DollarSign,
   Settings,
   MessageSquareText,
+  Check,
 } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
@@ -76,27 +77,24 @@ type Mode = "fees" | "grades";
 
 const ITEMS_PER_PAGE = 5;
 
-const MAPPING_FIELDS: Record<Mode, { key: string; label: string }[]> = {
+const MAPPING_FIELDS: Record<Mode, { key: string; label: string; searchTerms: string[] }[]> = {
   fees: [
-    { key: "studentName", label: "Student Name" },
-    { key: "className", label: "Class" },
-    { key: "phoneNumber", label: "Parent Phone Number" },
-    { key: "feeAmount", label: "Fee Amount" },
+    { key: "studentName", label: "Student Name", searchTerms: ["student", "name"] },
+    { key: "className", label: "Class", searchTerms: ["class", "grade", "standard"] },
+    { key: "phoneNumber", label: "Parent Phone Number", searchTerms: ["phone", "mobile", "contact"] },
+    { key: "feeAmount", label: "Fee Amount", searchTerms: ["fee", "amount", "due", "balance"] },
   ],
   grades: [
-    { key: "studentName", label: "Student Name" },
-    { key: "className", label: "Class" },
-    { key: "phoneNumber", label: "Parent Phone Number" },
+    { key: "studentName", label: "Student Name", searchTerms: ["student", "name"] },
+    { key: "className", label: "Class", searchTerms: ["class", "grade", "standard"] },
+    { key: "phoneNumber", label: "Parent Phone Number", searchTerms: ["phone", "mobile", "contact"] },
   ],
 };
 
-// This is now used for generating a user-friendly preview.
-// The actual template sent is determined by the name in settings.
 const PREVIEW_TEMPLATES: Record<Mode, string> = {
     fees: "Dear Parent, the {{feeName}} of Rs. {{feeAmount}} for your child {{studentName}} of class {{className}} is due on {{dueDate}}. Kindly pay at your earliest convenience. Thank you, School Admin.",
     grades: "Dear Parent, here are the grades for {{studentName}} (Class {{className}}) from the {{examName}}:\n{{gradesList}}\nCongratulations! - Principal"
 };
-
 
 const FormSchema = z.object({
   feeName: z.string().optional(),
@@ -104,9 +102,28 @@ const FormSchema = z.object({
   examName: z.string().optional(),
 });
 
+const STEPS = [
+  { id: 0, title: "Upload Data", description: "Select your Excel/CSV file" },
+  { id: 1, title: "Map Columns", description: "Match your data to our fields" },
+  { id: 2, title: "Preview & Send", description: "Confirm and send notifications" },
+];
+
+// Simple fuzzy matching for auto-mapping
+const findBestMatch = (header: string, fields: typeof MAPPING_FIELDS[Mode]) => {
+    const header_norm = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (const field of fields) {
+        for (const term of field.searchTerms) {
+            if (header_norm.includes(term)) {
+                return field.key;
+            }
+        }
+    }
+    return undefined;
+};
+
 export function EduAlertDashboard() {
   const { toast } = useToast();
-  const [step, setStep] = React.useState(0); // 0: Upload, 1: Map, 2: Preview
+  const [step, setStep] = React.useState(0);
   const [mode, setMode] = React.useState<Mode>("fees");
   const [file, setFile] = React.useState<File | null>(null);
   const [data, setData] = React.useState<Record<string, any>[]>([]);
@@ -117,7 +134,6 @@ export function EduAlertDashboard() {
   const [isParsing, setIsParsing] = React.useState(false);
   const [settings, setSettings] = React.useState<SettingsFormValues | null>(null);
   const [isLoadingSettings, setIsLoadingSettings] = React.useState(true);
-
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -139,7 +155,7 @@ export function EduAlertDashboard() {
 
         if (data) {
             setSettings(data);
-        } else if (error && error.code !== 'PGRST116') { // Ignore no rows found error
+        } else if (error && error.code !== 'PGRST116') {
              toast({
                 variant: "destructive",
                 title: "Error fetching settings",
@@ -176,9 +192,21 @@ export function EduAlertDashboard() {
           if(jsonData.length === 0) {
             throw new Error("No data found in the file.");
           }
-
+          
+          const fileHeaders = Object.keys(jsonData[0]);
           setData(jsonData);
-          setHeaders(Object.keys(jsonData[0]));
+          setHeaders(fileHeaders);
+
+          // Auto-mapping logic
+          const initialMappings: Record<string, string> = {};
+          fileHeaders.forEach(header => {
+              const bestMatch = findBestMatch(header, MAPPING_FIELDS[mode]);
+              if (bestMatch && !Object.values(initialMappings).includes(header)) {
+                  initialMappings[bestMatch] = header;
+              }
+          });
+          setMappings(initialMappings);
+          
           setStep(1);
 
         } catch (error: any) {
@@ -232,41 +260,41 @@ export function EduAlertDashboard() {
     setCurrentPage(1);
   };
 
-    const finalData = React.useMemo(() => {
-        if (step < 2) return [];
+  const finalData = React.useMemo(() => {
+    if (step < 2) return [];
 
-        let messageTemplate = PREVIEW_TEMPLATES[mode];
-        if (!messageTemplate) return [];
+    let messageTemplate = PREVIEW_TEMPLATES[mode];
+    if (!messageTemplate) return [];
 
-        return data.map(row => {
-            let message = messageTemplate;
-            const newRow: Record<string, string> = {};
+    return data.map(row => {
+        let message = messageTemplate;
+        const newRow: Record<string, string> = {};
 
-            Object.entries(mappings).forEach(([mapKey, header]) => {
-                newRow[mapKey] = String(row[header] ?? '');
-            });
-
-            message = message.replace(/{{studentName}}/g, newRow.studentName || '[N/A]');
-            message = message.replace(/{{className}}/g, newRow.className || '[N/A]');
-
-            if (mode === 'fees') {
-                message = message.replace(/{{feeName}}/g, feeName || '[Fee Name]');
-                message = message.replace(/{{feeAmount}}/g, newRow.feeAmount || '[N/A]');
-                message = message.replace(/{{dueDate}}/g, dueDate ? format(dueDate, 'PPP') : '[Due Date]');
-            } else {
-                const mappedHeaders = Object.values(mappings);
-                const gradesList = Object.entries(row)
-                    .filter(([header]) => !mappedHeaders.includes(header))
-                    .map(([subject, grade]) => `- ${subject}: ${grade}`)
-                    .join('\n');
-
-                message = message.replace(/{{gradesList}}/g, gradesList || 'No grades available.');
-                message = message.replace(/{{examName}}/g, examName || '[Exam Name]');
-            }
-
-            return { ...newRow, phoneNumber: newRow.phoneNumber, message };
+        Object.entries(mappings).forEach(([mapKey, header]) => {
+            newRow[mapKey] = String(row[header] ?? '');
         });
-    }, [step, mode, data, mappings, feeName, dueDate, examName]);
+
+        message = message.replace(/{{studentName}}/g, newRow.studentName || '[N/A]');
+        message = message.replace(/{{className}}/g, newRow.className || '[N/A]');
+
+        if (mode === 'fees') {
+            message = message.replace(/{{feeName}}/g, feeName || '[Fee Name]');
+            message = message.replace(/{{feeAmount}}/g, newRow.feeAmount || '[N/A]');
+            message = message.replace(/{{dueDate}}/g, dueDate ? format(dueDate, 'PPP') : '[Due Date]');
+        } else {
+            const mappedHeaders = Object.values(mappings);
+            const gradesList = Object.entries(row)
+                .filter(([header]) => !mappedHeaders.includes(header))
+                .map(([subject, grade]) => `- ${subject}: ${grade}`)
+                .join('\n');
+
+            message = message.replace(/{{gradesList}}/g, gradesList || 'No grades available.');
+            message = message.replace(/{{examName}}/g, examName || '[Exam Name]');
+        }
+
+        return { ...newRow, phoneNumber: newRow.phoneNumber, message };
+    });
+  }, [step, mode, data, mappings, feeName, dueDate, examName]);
 
   const handleSend = async () => {
     setIsSending(true);
@@ -294,7 +322,6 @@ export function EduAlertDashboard() {
     currentPage * ITEMS_PER_PAGE
   );
   const totalPages = Math.ceil(finalData.length / ITEMS_PER_PAGE);
-
   const currentTemplateName = mode === 'fees' ? settings?.fees_template_name : settings?.marks_template_name;
 
   return (
@@ -304,37 +331,57 @@ export function EduAlertDashboard() {
                 <div>
                     <CardTitle className="font-headline text-3xl">EduAlert</CardTitle>
                     <CardDescription>
-                    Send Fee and Grade Notifications via WhatsApp
+                    Send Fee and Grade Notifications via WhatsApp Seamlessly
                     </CardDescription>
                 </div>
-                <div className="flex gap-2">
+                 <div className="flex gap-2">
                     {step > 0 && <Button variant="outline" size="sm" onClick={reset}><RefreshCcw className="mr-2 h-4 w-4" /> Start Over</Button>}
                     <Button variant="outline" size="icon" asChild>
                         <Link href="/settings">
                             <Settings className="h-4 w-4" />
+                            <span className="sr-only">Settings</span>
                         </Link>
                     </Button>
                 </div>
             </div>
         </CardHeader>
-
+        
         <CardContent>
+             <div className="mb-8">
+                <ol className="flex items-center w-full">
+                    {STEPS.map((s, index) => (
+                        <li key={s.id} className={cn("flex w-full items-center", { "after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-300 after:border-2 after:inline-block": index < STEPS.length - 1 })}>
+                            <span className={cn(
+                                "flex items-center justify-center w-10 h-10 rounded-full shrink-0",
+                                step > s.id ? "bg-primary text-primary-foreground" : (step === s.id ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground")
+                            )}>
+                                {step > s.id ? <Check className="w-5 h-5"/> : s.id + 1}
+                            </span>
+                             <div className="ml-4 text-left hidden sm:block">
+                                <h3 className={cn("font-medium", step >= s.id && "text-foreground")}>{s.title}</h3>
+                                <p className="text-sm text-muted-foreground">{s.description}</p>
+                            </div>
+                        </li>
+                    ))}
+                </ol>
+            </div>
+
             {step === 0 && (
-                <div className="text-center p-8 border-2 border-dashed rounded-lg">
+                <div className="text-center p-8 border-2 border-dashed rounded-lg transition-colors hover:border-primary">
                     {isParsing ? (
                         <>
                             <Loader2 className="mx-auto h-12 w-12 text-primary animate-spin" />
-                            <h3 className="mt-4 text-lg font-semibold">Parsing File...</h3>
+                            <h3 className="mt-4 text-lg font-semibold">Parsing Your File</h3>
                             <p className="mt-1 text-sm text-muted-foreground">Please wait while we read your data.</p>
                         </>
                     ) : (
                         <>
                             <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
                             <h3 className="mt-4 text-lg font-semibold">Upload Student Data</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">Upload an Excel or CSV file to begin.</p>
+                            <p className="mt-1 text-sm text-muted-foreground">Click below to select an Excel or CSV file.</p>
                             <div className="mt-6">
                                 <Button asChild>
-                                    <label htmlFor="file-upload">
+                                    <label htmlFor="file-upload" className="cursor-pointer">
                                         <FileUp className="mr-2 h-4 w-4"/> Choose File
                                         <Input id="file-upload" type="file" className="sr-only" onChange={handleFileChange} accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
                                     </label>
@@ -349,11 +396,18 @@ export function EduAlertDashboard() {
                 <div className="space-y-6">
                     <div>
                         <h3 className="text-xl font-semibold font-headline">Map Data Columns</h3>
-                        <p className="text-muted-foreground">Match your sheet columns to the required fields for <span className="font-semibold">{file?.name}</span>.</p>
+                        <p className="text-muted-foreground">Match your sheet's columns to the required fields. We've tried to guess for you!</p>
                         <Tabs value={mode} onValueChange={(v) => {
                             const newMode = v as Mode;
                             setMode(newMode);
-                            setMappings({});
+                            const newMappings: Record<string, string> = {};
+                            headers.forEach(header => {
+                                const bestMatch = findBestMatch(header, MAPPING_FIELDS[newMode]);
+                                if (bestMatch && !Object.values(newMappings).includes(header)) {
+                                    newMappings[bestMatch] = header;
+                                }
+                            });
+                            setMappings(newMappings);
                         }} className="w-fit mt-4">
                             <TabsList>
                                 <TabsTrigger value="fees"><DollarSign className="mr-2 h-4 w-4" />Fee Notifications</TabsTrigger>
@@ -374,11 +428,11 @@ export function EduAlertDashboard() {
                            </AlertDescription>
                         </Alert>
                     ) : (
-                        <Alert>
+                         <Alert>
                             <MessageSquareText className="h-4 w-4"/>
                            <AlertTitle>Template To Be Used</AlertTitle>
                            <AlertDescription>
-                            The WhatsApp template <span className="font-semibold">{currentTemplateName}</span> from your settings will be used.
+                            The WhatsApp template <span className="font-semibold">{currentTemplateName}</span> from your settings will be used for sending messages.
                            </AlertDescription>
                         </Alert>
                     )}
@@ -387,7 +441,7 @@ export function EduAlertDashboard() {
                         {MAPPING_FIELDS[mode].map(field => (
                             <div key={field.key} className="space-y-2">
                                 <Label htmlFor={`map-${field.key}`}>{field.label}</Label>
-                                <Select onValueChange={value => setMappings(prev => ({ ...prev, [field.key]: value }))}>
+                                <Select onValueChange={value => setMappings(prev => ({ ...prev, [field.key]: value }))} value={mappings[field.key]}>
                                     <SelectTrigger id={`map-${field.key}`}>
                                         <SelectValue placeholder="Select column from your file..." />
                                     </SelectTrigger>
@@ -400,16 +454,16 @@ export function EduAlertDashboard() {
                             </div>
                         ))}
                     </div>
-                     <Alert>
-                        <GraduationCap className="h-4 w-4" />
-                        <AlertTitle>For Grade Reports</AlertTitle>
+                     <Alert variant="default" className="bg-sky-50 border-sky-200 dark:bg-sky-950 dark:border-sky-800">
+                        <GraduationCap className="h-4 w-4 !text-sky-600" />
+                        <AlertTitle>Note on Grade Reports</AlertTitle>
                         <AlertDescription>
-                            Any columns not mapped above will be automatically treated as subjects and their grades will be included in the message.
+                            For grade reports, any columns not mapped above will be automatically included in the message as a subject and its corresponding grade.
                         </AlertDescription>
                     </Alert>
                      <div className="flex justify-between items-center pt-4">
-                        <Button variant="outline" onClick={() => reset()}><ArrowLeft className="mr-2 h-4 w-4"/> Back to Upload</Button>
-                        <Button onClick={handleConfirmMapping} disabled={!currentTemplateName || isLoadingSettings} className="bg-accent hover:bg-accent/90">
+                        <Button variant="outline" onClick={() => setStep(0)}><ArrowLeft className="mr-2 h-4 w-4"/> Back</Button>
+                        <Button onClick={handleConfirmMapping} disabled={!currentTemplateName || isLoadingSettings} className="bg-primary hover:bg-primary/90">
                             Confirm Mappings & Preview <ChevronRight className="ml-2 h-4 w-4"/>
                         </Button>
                     </div>
@@ -421,8 +475,8 @@ export function EduAlertDashboard() {
                     <form className="space-y-8">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className="lg:col-span-1 space-y-6">
-                                <h3 className="text-xl font-semibold font-headline">Configure & Send</h3>
-
+                                <h3 className="text-xl font-semibold font-headline">Final Configuration</h3>
+                                <p className="text-sm text-muted-foreground">Fill in the remaining details for your notification template.</p>
                                 {mode === "fees" && (
                                 <>
                                     <FormField
@@ -491,7 +545,7 @@ export function EduAlertDashboard() {
                                                 <TableRow>
                                                     <TableHead>Student</TableHead>
                                                     <TableHead>Class</TableHead>
-                                                    <TableHead>Phone Number</TableHead>
+                                                    <TableHead>Phone</TableHead>
                                                     {mode === 'fees' && <TableHead>Fee Amount</TableHead>}
                                                     {mode === 'grades' && Object.keys(data[0] ?? {})
                                                         .filter(header => !Object.values(mappings).includes(header))
@@ -527,26 +581,27 @@ export function EduAlertDashboard() {
                                         </CardFooter>
                                     )}
                                 </Card>
-
-                                {paginatedData.length > 0 && (
-                                    <div className="mt-6">
-                                        <h3 className="text-xl font-semibold font-headline mb-2">Message Preview</h3>
-                                        <Card className="bg-muted/50">
-                                            <CardContent className="p-4">
-                                                <div className="flex items-start gap-3">
-                                                    <MessageSquareText className="w-5 h-5 mt-1 text-muted-foreground" />
-                                                    <p className="text-sm text-foreground whitespace-pre-wrap">{paginatedData[0].message}</p>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
+                        {paginatedData.length > 0 && (
+                            <div className="mt-6">
+                                <h3 className="text-xl font-semibold font-headline mb-2">Example Message Preview</h3>
+                                <Card className="bg-muted/50">
+                                    <CardContent className="p-4">
+                                        <div className="flex items-start gap-3">
+                                            <MessageSquareText className="w-5 h-5 mt-1 text-muted-foreground flex-shrink-0" />
+                                            <p className="text-sm text-foreground whitespace-pre-wrap">{paginatedData[0].message}</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
                         <Separator/>
 
-                        <div className="flex justify-end">
+                        <div className="flex justify-between items-center">
+                            <Button variant="outline" onClick={() => setStep(1)}><ArrowLeft className="mr-2 h-4 w-4"/> Back to Mapping</Button>
                              <Button type="button" size="lg" onClick={handleSend} disabled={isSending}>
                                 {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
                                 Send {finalData.length} Notifications
