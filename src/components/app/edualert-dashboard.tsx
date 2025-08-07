@@ -85,7 +85,6 @@ const MAPPING_FIELDS: Record<Mode, { key: string; label: string }[]> = {
     { key: "studentName", label: "Student Name" },
     { key: "className", label: "Class" },
     { key: "phoneNumber", label: "Parent Phone Number" },
-    { key: "grade", label: "Grade/Score" },
   ],
 };
 
@@ -95,8 +94,8 @@ const TEMPLATES: Record<Mode, { id: string; name: string; text: string }[]> = {
     { id: "fee_reminder_2", name: "Urgent Fee Notice", text: "URGENT: The {{feeName}} of ₹{{feeAmount}} for {{studentName}} is due on {{dueDate}}. Please clear the dues to avoid late fees. Regards, Accounts Department." },
   ],
   grades: [
-    { id: "grade_update_1", name: "Standard Grade Update", text: "Dear Parent, your child {{studentName}} of class {{className}} has secured grade '{{grade}}' in the {{examName}}. Congratulations! - Principal" },
-    { id: "grade_update_2", name: "Detailed Performance Report", text: "Performance Update: {{studentName}} (Class {{className}}) has received a grade of '{{grade}}' in the recent {{examName}}. For a detailed report, please visit the parent portal. Best, Examination Office." },
+    { id: "grade_update_1", name: "Standard Grade Update", text: "Dear Parent, here are the grades for {{studentName}} (Class {{className}}) from the {{examName}}:\n{{gradesList}}\nCongratulations! - Principal" },
+    { id: "grade_update_2", name: "Detailed Performance Report", text: "Performance Update for {{studentName}} (Class {{className}}) for {{examName}}:\n{{gradesList}}\nFor a detailed report, please visit the parent portal. Best, Examination Office." },
   ],
 };
 
@@ -214,7 +213,13 @@ export function EduAlertDashboard() {
             message = message.replace(/{{feeAmount}}/g, newRow.feeAmount || '[N/A]');
             message = message.replace(/{{dueDate}}/g, formWatcher.dueDate ? format(formWatcher.dueDate, 'PPP') : '[Due Date]');
         } else {
-            message = message.replace(/{{grade}}/g, newRow.grade || '[N/A]');
+            const mappedHeaders = Object.values(mappings);
+            const gradesList = Object.entries(row)
+                .filter(([header]) => !mappedHeaders.includes(header))
+                .map(([subject, grade]) => `- ${subject}: ${grade}`)
+                .join('\n');
+            
+            message = message.replace(/{{gradesList}}/g, gradesList || 'No grades available.');
             message = message.replace(/{{examName}}/g, formWatcher.examName || '[Exam Name]');
         }
         
@@ -332,6 +337,13 @@ export function EduAlertDashboard() {
                             </div>
                         ))}
                     </div>
+                     <Alert>
+                        <GraduationCap className="h-4 w-4" />
+                        <AlertTitle>For Grade Reports</AlertTitle>
+                        <AlertDescription>
+                            Any columns not mapped above will be automatically treated as subjects and their grades will be included in the message.
+                        </AlertDescription>
+                    </Alert>
                      <div className="flex justify-between items-center pt-4">
                         <Button variant="outline" onClick={() => reset()}><ArrowLeft className="mr-2 h-4 w-4"/> Back to Upload</Button>
                         <Button onClick={handleConfirmMapping} className="bg-accent hover:bg-accent/90">
@@ -440,12 +452,12 @@ export function EduAlertDashboard() {
                                             <TableBody>
                                             {paginatedData.length > 0 ? paginatedData.map((row, index) => (
                                                 <TableRow key={index}>
-                                                    <TableCell className="font-medium w-1/3">
+                                                    <TableCell className="font-medium w-1/3 align-top">
                                                         <div className="font-semibold">{row.studentName}</div>
                                                         <div className="text-sm text-muted-foreground">Class: {row.className}</div>
                                                         <div className="text-sm text-muted-foreground">Phone: {row.phoneNumber}</div>
                                                     </TableCell>
-                                                    <TableCell className="text-sm text-muted-foreground leading-relaxed">{row.message}</TableCell>
+                                                    <TableCell className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{row.message}</TableCell>
                                                 </TableRow>
                                             )) : (
                                                 <TableRow><TableCell colSpan={2} className="text-center h-24">No data to display.</TableCell></TableRow>
@@ -481,3 +493,5 @@ export function EduAlertDashboard() {
     </Card>
   );
 }
+
+    
