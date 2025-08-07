@@ -254,7 +254,12 @@ export function EduAlertDashboard() {
     setData([]);
     setHeaders([]);
     setMappings({});
-    form.reset();
+    form.reset({
+      feeName: "",
+      examName: "",
+      templateId: TEMPLATES[mode][0].id,
+      dueDate: undefined,
+    });
   };
 
   const paginatedData = finalData.slice(
@@ -454,21 +459,29 @@ export function EduAlertDashboard() {
                                             <TableHeader>
                                                 <TableRow>
                                                     <TableHead>Student</TableHead>
-                                                    <TableHead>Message Preview</TableHead>
+                                                    <TableHead>Class</TableHead>
+                                                    <TableHead>Phone Number</TableHead>
+                                                    {mode === 'fees' && <TableHead>Fee Amount</TableHead>}
+                                                    {mode === 'grades' && Object.keys(data[0] ?? {})
+                                                        .filter(header => !Object.values(mappings).includes(header))
+                                                        .map(subject => <TableHead key={subject}>{subject}</TableHead>)
+                                                    }
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                             {paginatedData.length > 0 ? paginatedData.map((row, index) => (
                                                 <TableRow key={index}>
-                                                    <TableCell className="font-medium w-1/3 align-top">
-                                                        <div className="font-semibold">{row.studentName}</div>
-                                                        <div className="text-sm text-muted-foreground">Class: {row.className}</div>
-                                                        <div className="text-sm text-muted-foreground">Phone: {row.phoneNumber}</div>
-                                                    </TableCell>
-                                                    <TableCell className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{row.message}</TableCell>
+                                                    <TableCell className="font-medium">{row.studentName}</TableCell>
+                                                    <TableCell>{row.className}</TableCell>
+                                                    <TableCell>{row.phoneNumber}</TableCell>
+                                                     {mode === 'fees' && <TableCell>{row.feeAmount}</TableCell>}
+                                                     {mode === 'grades' && Object.keys(data[0] ?? {})
+                                                        .filter(header => !Object.values(mappings).includes(header))
+                                                        .map(subject => <TableCell key={subject}>{data.find(d => d[mappings['studentName']] === row.studentName)?.[subject]}</TableCell>)
+                                                    }
                                                 </TableRow>
                                             )) : (
-                                                <TableRow><TableCell colSpan={2} className="text-center h-24">No data to display.</TableCell></TableRow>
+                                                <TableRow><TableCell colSpan={mode === 'fees' ? 4 : 3 + (Object.keys(data[0] ?? {}).length - Object.values(mappings).length)} className="text-center h-24">No data to display.</TableCell></TableRow>
                                             )}
                                             </TableBody>
                                         </Table>
@@ -501,3 +514,5 @@ export function EduAlertDashboard() {
     </Card>
   );
 }
+
+    
