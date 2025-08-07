@@ -30,27 +30,31 @@ export async function saveSettings(data: SettingsFormValues) {
 
 export async function testWhaConnection() {
     try {
-        // 1. Fetch settings from the database
+        // 1. Fetch ALL required settings from the database, including the endpoint.
         const { data: settings, error: fetchError } = await supabase
             .from('settings')
-            .select('waba_id, access_token')
+            .select('waba_id, access_token, endpoint') // Correctly fetch the endpoint
             .eq('id', 1)
             .single();
 
-        // 2. Handle potential database errors during fetch
-        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found, which is a valid case we handle next.
+        // 2. Handle database errors during fetch.
+        if (fetchError && fetchError.code !== 'PGRST116') {
              throw new Error(`Database Error: ${fetchError.message}`);
         }
 
-        // 3. Explicitly validate the fetched settings and credentials
-        if (!settings || !settings.waba_id || typeof settings.waba_id !== 'string' || settings.waba_id.trim() === '' || !settings.access_token || typeof settings.access_token !== 'string' || settings.access_token.trim() === '') {
-            throw new Error("Settings not found or are incomplete. Please save a valid WABA ID and Access Token first.");
+        // 3. Explicitly validate that all required credentials exist and are valid strings.
+        if (!settings || !settings.waba_id || typeof settings.waba_id !== 'string' || settings.waba_id.trim() === '' || !settings.access_token || typeof settings.access_token !== 'string' || settings.access_token.trim() === '' || !settings.endpoint || typeof settings.endpoint !== 'string' || settings.endpoint.trim() === '') {
+            throw new Error("Settings not found or are incomplete. Please save a valid WABA ID, Access Token, and Endpoint URL first.");
         }
 
-        const { waba_id, access_token } = settings;
+        const { waba_id, access_token, endpoint } = settings;
         
-        // 4. Test connection by fetching business profiles
-        const url = `https://graph.facebook.com/v19.0/${waba_id}/business_profiles?fields=name`;
+        // 4. Test connection by fetching business profiles using the user-provided endpoint.
+        // The URL is constructed by replacing the version and phone ID part of the path with the WABA ID.
+        // This makes it compatible with both direct Facebook URLs and proxy URLs like getbotify.
+        const baseUrl = endpoint.split('/v')[0]; // Get the base part of the URL.
+        const url = `${baseUrl.replace(/\/$/, '')}/${waba_id}/business_profiles?fields=name`;
+
 
         const response = await fetch(url, {
             headers: {
@@ -64,11 +68,16 @@ export async function testWhaConnection() {
             const errorMessage = responseData.error?.message || `API Error: ${response.statusText}`;
             throw new Error(errorMessage);
         }
+        
+        const businessName = responseData.data?.[0]?.name;
+        if (!businessName) {
+            throw new Error("Connection successful, but could not retrieve business name. Please check your WABA ID.");
+        }
 
         return { success: true, data: responseData };
 
     } catch (error: any) {
-        // 5. Return a structured error object
+        // 5. Return a structured error object for any failure.
         return { success: false, error: error.message };
     }
 }
