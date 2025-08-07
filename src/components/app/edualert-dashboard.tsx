@@ -339,11 +339,10 @@ export function EduAlertDashboard() {
                 <div>
                     <CardTitle className="font-sans text-3xl font-bold">Send Notifications</CardTitle>
                     <CardDescription>
-                    Send Fee and Grade Notifications via WhatsApp Seamlessly
+                    Send Fee and Grade Notifications via WhatsApp Seamlessly. Go to <Link href="/settings" className="underline">Settings</Link>
                     </CardDescription>
                 </div>
                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" asChild><Link href="/"><ArrowLeft className="mr-2 h-4 w-4" />Back to Dashboard</Link></Button>
                     {step > 0 && <Button variant="outline" size="sm" onClick={reset}><RefreshCcw className="mr-2 h-4 w-4" /> Start Over</Button>}
                 </div>
             </div>
