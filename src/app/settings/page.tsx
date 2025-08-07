@@ -147,10 +147,10 @@ export default function SettingsPage() {
 
       const result = await testWhaConnection();
       if (result.success) {
-          const connectedId = result.data?.id;
+          const businessName = result.data?.data?.[0]?.name;
           toast({
               title: "WhatsApp API Connected!",
-              description: connectedId ? `Connection successful for ID: ${connectedId}.` : "Connection successful.",
+              description: businessName ? `Successfully connected to: ${businessName}.` : "Connection successful.",
               className: "bg-primary text-primary-foreground"
           });
       } else {

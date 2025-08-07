@@ -40,14 +40,13 @@ export async function testWhaConnection() {
              throw new Error(`Database Error: ${fetchError.message}`);
         }
 
-        if (!settings || !settings.phone_number_id || !settings.access_token || !settings.endpoint || typeof settings.access_token !== 'string' || settings.access_token.trim() === '') {
+        if (!settings || !settings.phone_number_id || !settings.access_token || typeof settings.access_token !== 'string' || settings.access_token.trim() === '' || !settings.endpoint) {
             throw new Error("Settings not found or are incomplete. Please save a valid Phone Number ID, Access Token, and Endpoint URL first.");
         }
         
         const { phone_number_id, access_token, endpoint } = settings;
 
-        // Construct the URL exactly as described: [Your Endpoint URL]/v19.0/[Your Phone ID]
-        const url = `${endpoint.replace(/\/$/, '')}/v19.0/${phone_number_id}`;
+        const url = `${endpoint.replace(/\/$/, '')}/v19.0/${phone_number_id}/whatsapp_business_profile?fields=name`;
 
         const response = await fetch(url, {
             headers: {
