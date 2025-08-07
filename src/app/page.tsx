@@ -417,7 +417,7 @@ function EduAlertDashboard() {
         <CardHeader>
             <div className="flex justify-between items-start">
                 <div>
-                    <CardTitle className="font-sans text-3xl font-bold">Gnanamani Educational Institutions</CardTitle>
+                    <CardTitle className="font-sans text-3xl font-bold text-primary">Gnanamani Educational Institutions</CardTitle>
                     <CardDescription>
                     Send Fee and Grade Notifications via WhatsApp Seamlessly.
                     </CardDescription>
