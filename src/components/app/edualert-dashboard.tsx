@@ -17,6 +17,10 @@ import {
   Settings,
   MessageSquareText,
   Check,
+  FileCheck2,
+  ListOrdered,
+  SendHoriz,
+  CircleAlert,
 } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
@@ -73,6 +77,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { SettingsFormValues } from "@/app/settings/actions";
+import { AnimatePresence, motion } from "framer-motion";
 
 type Mode = "fees" | "grades";
 
@@ -80,15 +85,15 @@ const ITEMS_PER_PAGE = 5;
 
 const MAPPING_FIELDS: Record<Mode, { key: string; label: string; searchTerms: string[] }[]> = {
   fees: [
-    { key: "studentName", label: "Student Name", searchTerms: ["student", "name"] },
-    { key: "className", label: "Class", searchTerms: ["class", "grade", "standard"] },
-    { key: "phoneNumber", label: "Parent Phone Number", searchTerms: ["phone", "mobile", "contact"] },
-    { key: "feeAmount", label: "Fee Amount", searchTerms: ["fee", "amount", "due", "balance"] },
+    { key: "studentName", label: "Student Name*", searchTerms: ["student", "name"] },
+    { key: "className", label: "Class*", searchTerms: ["class", "grade", "standard"] },
+    { key: "phoneNumber", label: "Parent Phone Number*", searchTerms: ["phone", "mobile", "contact"] },
+    { key: "feeAmount", label: "Fee Amount*", searchTerms: ["fee", "amount", "due", "balance"] },
   ],
   grades: [
-    { key: "studentName", label: "Student Name", searchTerms: ["student", "name"] },
-    { key: "className", label: "Class", searchTerms: ["class", "grade", "standard"] },
-    { key: "phoneNumber", label: "Parent Phone Number", searchTerms: ["phone", "mobile", "contact"] },
+    { key: "studentName", label: "Student Name*", searchTerms: ["student", "name"] },
+    { key: "className", label: "Class*", searchTerms: ["class", "grade", "standard"] },
+    { key: "phoneNumber", label: "Parent Phone Number*", searchTerms: ["phone", "mobile", "contact"] },
   ],
 };
 
@@ -104,12 +109,11 @@ const FormSchema = z.object({
 });
 
 const STEPS = [
-  { id: 0, title: "Upload Data", description: "Select your Excel/CSV file" },
-  { id: 1, title: "Map Columns", description: "Match your data to our fields" },
-  { id: 2, title: "Preview & Send", description: "Confirm and send notifications" },
+  { id: 0, title: "Upload Data", description: "Select your Excel/CSV file", icon: FileCheck2 },
+  { id: 1, title: "Map Columns", description: "Match your data to our fields", icon: ListOrdered },
+  { id: 2, title: "Preview & Send", description: "Confirm and send notifications", icon: SendHoriz },
 ];
 
-// Simple fuzzy matching for auto-mapping
 const findBestMatch = (header: string, fields: typeof MAPPING_FIELDS[Mode]) => {
     const header_norm = header.toLowerCase().replace(/[^a-z0-9]/g, '');
     for (const field of fields) {
@@ -138,15 +142,22 @@ export function EduAlertDashboard() {
   const [isParsing, setIsParsing] = React.useState(false);
   const [settings, setSettings] = React.useState<SettingsFormValues | null>(null);
   const [isLoadingSettings, setIsLoadingSettings] = React.useState(true);
+  const [direction, setDirection] = React.useState(1);
+
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      feeName: "",
-      examName: "",
-      dueDate: undefined,
+      feeName: "Monthly Tuition Fee",
+      examName: "Final Term Examination",
+      dueDate: new Date(),
     }
   });
+
+  const navigateToStep = (nextStep: number) => {
+    setDirection(nextStep > step ? 1 : -1);
+    setStep(nextStep);
+  }
 
   React.useEffect(() => {
     async function fetchSettings() {
@@ -205,7 +216,6 @@ export function EduAlertDashboard() {
           setData(jsonData);
           setHeaders(fileHeaders);
 
-          // Auto-mapping logic
           const initialMappings: Record<string, string> = {};
           fileHeaders.forEach(header => {
               const bestMatch = findBestMatch(header, MAPPING_FIELDS[mode]);
@@ -215,7 +225,7 @@ export function EduAlertDashboard() {
           });
           setMappings(initialMappings);
           
-          setStep(1);
+          navigateToStep(1);
 
         } catch (error: any) {
             toast({
@@ -239,17 +249,17 @@ export function EduAlertDashboard() {
       reader.readAsArrayBuffer(selectedFile);
     }
   };
+  
+  const requiredFields = MAPPING_FIELDS[mode].map(f => f.key);
+  const mappedFields = Object.keys(mappings).filter(k => mappings[k]);
+  const allRequiredMapped = requiredFields.every(rf => mappedFields.includes(rf));
 
   const handleConfirmMapping = () => {
-    const requiredFields = MAPPING_FIELDS[mode].map(f => f.key);
-    const mappedFields = Object.keys(mappings);
-    const allRequiredMapped = requiredFields.every(rf => mappedFields.includes(rf) && mappings[rf]);
-
     if (!allRequiredMapped) {
         toast({
             variant: "destructive",
             title: "Mapping Incomplete",
-            description: "Please map all required fields for the selected mode.",
+            description: "Please map all required fields (marked with *) for the selected mode.",
         });
         return;
     }
@@ -264,45 +274,48 @@ export function EduAlertDashboard() {
         return;
     }
 
-    setStep(2);
+    navigateToStep(2);
     setCurrentPage(1);
   };
 
   const finalData = React.useMemo(() => {
     if (step < 2) return [];
 
-    let messageTemplate = PREVIEW_TEMPLATES[mode];
-    if (!messageTemplate) return [];
-
     return data.map(row => {
-        let message = messageTemplate;
         const newRow: Record<string, string> = {};
-
         Object.entries(mappings).forEach(([mapKey, header]) => {
             newRow[mapKey] = String(row[header] ?? '');
         });
+        return { ...newRow, phoneNumber: newRow.phoneNumber, rawData: row };
+    });
+  }, [step, data, mappings]);
 
-        message = message.replace(/{{studentName}}/g, newRow.studentName || '[N/A]');
-        message = message.replace(/{{className}}/g, newRow.className || '[N/A]');
+    const exampleMessage = React.useMemo(() => {
+        if(step < 2 || finalData.length === 0) return "";
+
+        const firstRow = finalData[0];
+        let message = PREVIEW_TEMPLATES[mode];
+
+        message = message.replace(/{{studentName}}/g, firstRow.studentName || '[N/A]');
+        message = message.replace(/{{className}}/g, firstRow.className || '[N/A]');
 
         if (mode === 'fees') {
             message = message.replace(/{{feeName}}/g, feeName || '[Fee Name]');
-            message = message.replace(/{{feeAmount}}/g, newRow.feeAmount || '[N/A]');
+            message = message.replace(/{{feeAmount}}/g, firstRow.feeAmount || '[N/A]');
             message = message.replace(/{{dueDate}}/g, dueDate ? format(dueDate, 'PPP') : '[Due Date]');
         } else {
-            const mappedHeaders = Object.values(mappings);
-            const gradesList = Object.entries(row)
+             const mappedHeaders = Object.values(mappings);
+             const gradesList = Object.entries(firstRow.rawData)
                 .filter(([header]) => !mappedHeaders.includes(header))
                 .map(([subject, grade]) => `- ${subject}: ${grade}`)
                 .join('\n');
-
             message = message.replace(/{{gradesList}}/g, gradesList || 'No grades available.');
             message = message.replace(/{{examName}}/g, examName || '[Exam Name]');
         }
+        return message;
 
-        return { ...newRow, phoneNumber: newRow.phoneNumber, message };
-    });
-  }, [step, mode, data, mappings, feeName, dueDate, examName]);
+    }, [step, finalData, mode, feeName, dueDate, examName, mappings]);
+
 
   const handleSend = async () => {
     setIsSending(true);
@@ -317,7 +330,7 @@ export function EduAlertDashboard() {
   };
 
   const reset = () => {
-    setStep(0);
+    navigateToStep(0);
     setFile(null);
     setData([]);
     setHeaders([]);
@@ -332,8 +345,34 @@ export function EduAlertDashboard() {
   const totalPages = Math.ceil(finalData.length / ITEMS_PER_PAGE);
   const currentTemplateName = mode === 'fees' ? settings?.fees_template_name : settings?.marks_template_name;
 
+  const variants = {
+    hidden: (direction: number) => ({
+      opacity: 0,
+      x: direction > 0 ? 30 : -30,
+    }),
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 30,
+      },
+    },
+    exit: (direction: number) => ({
+      opacity: 0,
+      x: direction < 0 ? 30 : -30,
+       transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 30,
+      },
+    }),
+  };
+
+
   return (
-    <Card className="w-full max-w-5xl shadow-2xl">
+    <Card className="w-full max-w-5xl shadow-2xl overflow-hidden">
         <CardHeader>
             <div className="flex justify-between items-start">
                 <div>
@@ -349,24 +388,39 @@ export function EduAlertDashboard() {
         </CardHeader>
         
         <CardContent>
-             <div className="mb-8">
+             <div className="mb-8 p-4">
                 <ol className="flex items-center w-full">
                     {STEPS.map((s, index) => (
-                        <li key={s.id} className={cn("flex w-full items-center", { "after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-300 after:border-2 after:inline-block": index < STEPS.length - 1 })}>
+                        <li key={s.id} className={cn("flex w-full items-center", { "after:content-[''] after:w-full after:h-1 after:border-b after:border-primary/50 after:border-1 after:inline-block": index < STEPS.length - 1 })}>
+                           <button
+                             onClick={() => s.id < step && navigateToStep(s.id)}
+                             disabled={s.id >= step}
+                             className="flex flex-col items-center justify-center w-16 h-16 rounded-full shrink-0 disabled:cursor-not-allowed group"
+                           >
                             <span className={cn(
-                                "flex items-center justify-center w-10 h-10 rounded-full shrink-0",
-                                step > s.id ? "bg-primary text-primary-foreground" : (step === s.id ? "bg-blue-600 text-white" : "bg-muted text-muted-foreground")
+                                "flex items-center justify-center w-12 h-12 rounded-full shrink-0 transition-colors duration-300",
+                                step > s.id ? "bg-primary text-primary-foreground group-hover:bg-primary/80" : (step === s.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-muted/80")
                             )}>
-                                {step > s.id ? <Check className="w-5 h-5"/> : s.id + 1}
+                                {step > s.id ? <Check className="w-6 h-6"/> : <s.icon className="w-6 h-6"/>}
                             </span>
-                             <div className="ml-4 text-left hidden sm:block">
-                                <h3 className={cn("font-medium", step >= s.id && "text-foreground")}>{s.title}</h3>
-                                <p className="text-sm text-muted-foreground">{s.description}</p>
+                             <div className="mt-2 text-center">
+                                <h3 className={cn("font-medium text-sm", step >= s.id && "text-foreground")}>{s.title}</h3>
                             </div>
+                           </button>
                         </li>
                     ))}
                 </ol>
             </div>
+            
+            <AnimatePresence mode="wait" custom={direction}>
+                <motion.div
+                    key={step}
+                    custom={direction}
+                    variants={variants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                >
 
             {step === 0 && (
                 <div className="text-center p-8 border-2 border-dashed rounded-lg transition-colors hover:border-primary">
@@ -381,6 +435,7 @@ export function EduAlertDashboard() {
                             <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
                             <h3 className="mt-4 text-lg font-semibold">Upload Student Data</h3>
                             <p className="mt-1 text-sm text-muted-foreground">Click below to select an Excel or CSV file.</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Supported formats: .xlsx, .xls, .csv</p>
                             <div className="mt-6">
                                 <Button asChild>
                                     <label htmlFor="file-upload" className="cursor-pointer">
@@ -424,6 +479,7 @@ export function EduAlertDashboard() {
                         </div>
                     ): !currentTemplateName ? (
                         <Alert variant="destructive">
+                           <CircleAlert className="h-4 w-4" />
                            <AlertTitle>Setting Missing</AlertTitle>
                            <AlertDescription>
                              The template name for '{mode}' notifications is not set. Please <Link href="/settings" className="font-bold underline">go to settings</Link> to configure it.
@@ -436,6 +492,14 @@ export function EduAlertDashboard() {
                            <AlertDescription>
                             The WhatsApp template <span className="font-semibold">{currentTemplateName}</span> from your settings will be used for sending messages.
                            </AlertDescription>
+                        </Alert>
+                    )}
+
+                    {!allRequiredMapped && (
+                         <Alert variant="destructive">
+                            <CircleAlert className="h-4 w-4" />
+                            <AlertTitle>Action Required</AlertTitle>
+                            <AlertDescription>Please map all required fields marked with an asterisk (*).</AlertDescription>
                         </Alert>
                     )}
 
@@ -464,8 +528,8 @@ export function EduAlertDashboard() {
                         </AlertDescription>
                     </Alert>
                      <div className="flex justify-between items-center pt-4">
-                        <Button variant="outline" onClick={() => setStep(0)}><ArrowLeft className="mr-2 h-4 w-4"/> Back</Button>
-                        <Button onClick={handleConfirmMapping} disabled={!currentTemplateName || isLoadingSettings}>
+                        <Button variant="outline" onClick={() => navigateToStep(0)}><ArrowLeft className="mr-2 h-4 w-4"/> Back</Button>
+                        <Button onClick={handleConfirmMapping} disabled={!currentTemplateName || isLoadingSettings || !allRequiredMapped}>
                             Confirm Mappings & Preview <ChevronRight className="ml-2 h-4 w-4"/>
                         </Button>
                     </div>
@@ -532,6 +596,17 @@ export function EduAlertDashboard() {
                                         )}
                                     />
                                 )}
+                                 <div className="mt-6">
+                                    <h3 className="text-xl font-semibold mb-2">Live Message Preview</h3>
+                                    <Card className="bg-muted/50">
+                                        <CardContent className="p-4">
+                                            <div className="flex items-start gap-3">
+                                                <MessageSquareText className="w-5 h-5 mt-1 text-muted-foreground flex-shrink-0" />
+                                                <p className="text-sm text-foreground whitespace-pre-wrap">{exampleMessage}</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
                             </div>
                             <div className="lg:col-span-2">
                                 <div className="flex justify-between items-center mb-2">
@@ -586,24 +661,10 @@ export function EduAlertDashboard() {
                             </div>
                         </div>
 
-                        {paginatedData.length > 0 && (
-                            <div className="mt-6">
-                                <h3 className="text-xl font-semibold mb-2">Example Message Preview</h3>
-                                <Card className="bg-muted/50">
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start gap-3">
-                                            <MessageSquareText className="w-5 h-5 mt-1 text-muted-foreground flex-shrink-0" />
-                                            <p className="text-sm text-foreground whitespace-pre-wrap">{paginatedData[0].message}</p>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        )}
-
                         <Separator/>
 
                         <div className="flex justify-between items-center">
-                            <Button variant="outline" onClick={() => setStep(1)}><ArrowLeft className="mr-2 h-4 w-4"/> Back to Mapping</Button>
+                            <Button variant="outline" onClick={() => navigateToStep(1)}><ArrowLeft className="mr-2 h-4 w-4"/> Back to Mapping</Button>
                              <Button type="button" size="lg" onClick={handleSend} disabled={isSending}>
                                 {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
                                 Send {finalData.length} Notifications
@@ -612,7 +673,11 @@ export function EduAlertDashboard() {
                     </form>
                 </Form>
             )}
+            </motion.div>
+          </AnimatePresence>
         </CardContent>
     </Card>
   );
 }
+
+    
