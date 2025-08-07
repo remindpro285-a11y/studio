@@ -12,7 +12,6 @@ import {
   GraduationCap,
   Loader2,
   Send,
-  Sparkles,
   RefreshCcw,
   DollarSign,
   Settings
@@ -311,8 +310,10 @@ export function EduAlertDashboard() {
                         <h3 className="text-xl font-semibold font-headline">Map Data Columns</h3>
                         <p className="text-muted-foreground">Match your sheet columns to the required fields for <span className="font-semibold">{file?.name}</span>.</p>
                         <Tabs value={mode} onValueChange={(v) => {
-                            setMode(v as Mode);
+                            const newMode = v as Mode;
+                            setMode(newMode);
                             setMappings({});
+                            form.setValue("templateId", TEMPLATES[newMode][0].id);
                         }} className="w-fit mt-4">
                             <TabsList>
                                 <TabsTrigger value="fees"><DollarSign className="mr-2 h-4 w-4" />Fee Notifications</TabsTrigger>
@@ -493,5 +494,3 @@ export function EduAlertDashboard() {
     </Card>
   );
 }
-
-    
