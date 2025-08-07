@@ -30,27 +30,23 @@ export async function saveSettings(data: SettingsFormValues) {
 
 export async function testWhaConnection() {
     try {
-        // 1. Fetch ALL required settings from the database.
         const { data: settings, error: fetchError } = await supabase
             .from('settings')
             .select('phone_number_id, access_token, endpoint')
             .eq('id', 1)
             .single();
 
-        // 2. Handle database errors during fetch.
-        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
+        if (fetchError && fetchError.code !== 'PGRST116') {
              throw new Error(`Database Error: ${fetchError.message}`);
         }
 
-        // 3. Explicitly validate that all required credentials exist and are valid strings.
-        if (!settings || !settings.phone_number_id || typeof settings.phone_number_id !== 'string' || settings.phone_number_id.trim() === '' || !settings.access_token || typeof settings.access_token !== 'string' || settings.access_token.trim() === '' || !settings.endpoint || typeof settings.endpoint !== 'string' || settings.endpoint.trim() === '') {
+        if (!settings || !settings.phone_number_id || !settings.access_token || !settings.endpoint) {
             throw new Error("Settings not found or are incomplete. Please save a valid Phone Number ID, Access Token, and Endpoint URL first.");
         }
 
         const { phone_number_id, access_token, endpoint } = settings;
-        
-        // 4. Construct the correct URL for fetching the WhatsApp business profile, including API version.
-        const url = `${endpoint.replace(/\/$/, '')}/v19.0/${phone_number_id}/whatsapp_business_profile?fields=name`;
+
+        const url = `${endpoint.replace(/\/$/, '')}/${phone_number_id}/whatsapp_business_profile?fields=name`;
 
         const response = await fetch(url, {
             headers: {
@@ -73,7 +69,6 @@ export async function testWhaConnection() {
         return { success: true, data: responseData };
 
     } catch (error: any) {
-        // 5. Return a structured error object for any failure.
         return { success: false, error: error.message };
     }
 }
