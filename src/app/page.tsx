@@ -441,7 +441,12 @@ function EduAlertDashboard() {
     const isCorrect = await verifyPassword(password);
     if(isCorrect) {
         setIsUnlocked(true);
-        toast({ title: "Unlocked", description: "You can now upload data.", className: "bg-primary text-primary-foreground"});
+        toast({ 
+            title: "Unlocked", 
+            description: "You can now upload data.", 
+            className: "bg-primary text-primary-foreground",
+            duration: 3000,
+        });
     } else {
         toast({ variant: "destructive", title: "Incorrect Password", description: "The password you entered is incorrect."});
     }
