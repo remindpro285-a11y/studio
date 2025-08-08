@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -506,10 +507,10 @@ function EduAlertDashboard() {
         
         <CardContent>
              <div className="mb-8 p-4">
-                 <ol className="relative flex w-full items-center justify-between">
+                <ol className="grid grid-cols-2 sm:grid-cols-4 w-full items-start justify-center gap-y-8 gap-x-4">
                     {STEPS.map((s, index) => (
-                        <li key={s.id} className={cn("flex items-center", { "w-full": index < STEPS.length - 1 })}>
-                           <div className="flex flex-col items-center justify-start relative">
+                        <li key={s.id} className="relative flex justify-center">
+                           <div className="flex flex-col items-center justify-start text-center">
                              <button
                                onClick={() => s.id < step && !isSending && navigateToStep(s.id)}
                                disabled={s.id >= step || isSending}
@@ -522,11 +523,19 @@ function EduAlertDashboard() {
                                   {step > s.id ? <Check className="w-6 h-6"/> : <s.icon className="w-6 h-6"/>}
                               </span>
                              </button>
-                             <div className="mt-2 text-center absolute top-16 w-24 sm:w-32">
+                             <div className="mt-2 w-24 sm:w-32">
                                   <h3 className={cn("font-medium text-xs sm:text-sm", step >= s.id && "text-foreground")}>{s.title}</h3>
                               </div>
                            </div>
-                           {index < STEPS.length - 1 && <div className="h-1 w-full bg-border flex-1 -ml-4 -mr-4" />}
+                           {index < STEPS.length - 1 && (
+                            <div className={cn(
+                              "absolute top-6 left-1/2 w-full h-1 bg-border -z-10",
+                              // Hide line on the last item of a row in the 2-col grid
+                              "sm:block",
+                              index === 1 ? "hidden" : "block", // Hide line after step 2 on mobile
+                              index === 3 ? "hidden" : "block"  // Hide line after step 4 always
+                            )} />
+                           )}
                         </li>
                     ))}
                 </ol>
