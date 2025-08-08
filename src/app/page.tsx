@@ -500,7 +500,6 @@ function EduAlertDashboard() {
                     <Button variant="outline" size="sm" asChild>
                         <Link href="/settings"><MessageSquareText className="mr-2 h-4 w-4" /> Go to Settings</Link>
                     </Button>
-                    <Button variant="outline" size="sm" onClick={reset}><RefreshCcw className="mr-2 h-4 w-4" /> Start Over</Button>
                 </div>
             </div>
         </CardHeader>
