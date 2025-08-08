@@ -81,6 +81,7 @@ import { supabase } from "@/lib/supabase";
 import type { SettingsFormValues } from "@/app/settings/actions";
 import { AnimatePresence, motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
+import { verifyPassword } from "./actions";
 
 type Mode = "fees" | "grades";
 
@@ -152,6 +153,7 @@ function EduAlertDashboard() {
   const [isUnlocked, setIsUnlocked] = React.useState(false);
   const [password, setPassword] = React.useState("");
   const [isVerifying, setIsVerifying] = React.useState(false);
+  const [previewTimestamp, setPreviewTimestamp] = React.useState("");
 
 
   const form = useForm<z.infer<typeof FormSchema>>({
@@ -178,7 +180,7 @@ function EduAlertDashboard() {
             .single();
 
         if (data) {
-            setSettings(data);
+            setSettings(data as any); // Cast because lock_password is not in the type
             if (!data.lock_password) {
                 setIsUnlocked(true);
             }
@@ -257,6 +259,7 @@ function EduAlertDashboard() {
 
             setMessagePreview(`Dear Parent, the results for the ${examNameText} for your child, ${studentInfo}, are as follows: ${gradesList || "[Grades List]"}.`);
         }
+        setPreviewTimestamp(format(new Date(), 'HH:mm'));
     } else {
         setMessagePreview("");
     }
@@ -431,16 +434,9 @@ function EduAlertDashboard() {
   };
 
   const handlePasswordVerification = async () => {
-    if (!settings) {
-        toast({ variant: "destructive", title: "Error", description: "Settings not loaded yet."});
-        return;
-    }
-    if (!settings.lock_password) {
-        setIsUnlocked(true);
-        return;
-    }
     setIsVerifying(true);
-    if(password === settings.lock_password) {
+    const isCorrect = await verifyPassword(password);
+    if(isCorrect) {
         setIsUnlocked(true);
         toast({ title: "Unlocked", description: "You can now upload data.", className: "bg-primary text-primary-foreground"});
     } else {
@@ -727,13 +723,24 @@ function EduAlertDashboard() {
                                         )}
                                     />
                                 )}
-                                <Alert>
-                                    <MessageSquareText className="h-4 w-4"/>
-                                    <AlertTitle>Live Message Preview</AlertTitle>
-                                    <AlertDescription>
-                                        {messagePreview ? messagePreview : "Fill in the details to see a preview."}
-                                    </AlertDescription>
-                                </Alert>
+                                <div>
+                                    <Label>Live Message Preview</Label>
+                                    <div className="mt-2 p-4 rounded-lg bg-gray-200 dark:bg-gray-800 whatsapp-chat-container">
+                                        <div className="flex flex-col items-start">
+                                        {messagePreview ? (
+                                            <div className="bubble receiver">
+                                                {messagePreview}
+                                                <span className="timestamp">{previewTimestamp}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="bubble receiver text-muted-foreground">
+                                                Fill in details to see a preview.
+                                                 <span className="timestamp">{format(new Date(), 'HH:mm')}</span>
+                                            </div>
+                                        )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div className="lg:col-span-2">
                                 <div className="flex justify-between items-center mb-2">

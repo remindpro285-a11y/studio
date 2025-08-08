@@ -86,3 +86,42 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* WhatsApp bubble styles */
+.whatsapp-chat-container {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #303030;
+}
+
+.bubble {
+  position: relative;
+  padding: 8px 12px;
+  padding-bottom: 20px; /* Make space for timestamp */
+  margin: 4px 0;
+  border-radius: 12px;
+  max-width: 85%;
+  word-wrap: break-word;
+}
+
+.bubble.receiver {
+  background-color: #fff;
+  border: 1px solid #e6e6e6;
+  border-top-left-radius: 2px;
+  align-self: flex-start;
+}
+
+.bubble.sender {
+  background-color: #dcf8c6;
+  border-top-right-radius: 2px;
+  align-self: flex-end;
+}
+
+.timestamp {
+  font-size: 11px;
+  color: #999;
+  position: absolute;
+  bottom: 5px;
+  right: 10px;
+}
