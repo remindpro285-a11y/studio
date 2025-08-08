@@ -24,6 +24,8 @@ import {
   XCircle,
   Lock,
   Unlock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
@@ -154,6 +156,7 @@ function EduAlertDashboard() {
   const [password, setPassword] = React.useState("");
   const [isVerifying, setIsVerifying] = React.useState(false);
   const [previewTimestamp, setPreviewTimestamp] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
 
 
   const form = useForm<z.infer<typeof FormSchema>>({
@@ -551,13 +554,25 @@ function EduAlertDashboard() {
                                     <h3 className="mt-4 text-lg font-semibold">Dashboard Locked</h3>
                                     <p className="mt-1 text-sm text-muted-foreground">Enter the password to upload student data.</p>
                                     <div className="mt-4 flex gap-2">
-                                        <Input 
-                                            type="password"
-                                            placeholder="Enter password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handlePasswordVerification()}
-                                        />
+                                        <div className="relative flex-grow">
+                                            <Input 
+                                                type={showPassword ? "text" : "password"}
+                                                placeholder="Enter password"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                onKeyDown={(e) => e.key === 'Enter' && handlePasswordVerification()}
+                                                className="pr-10"
+                                            />
+                                            <Button 
+                                                type="button" 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                                onClick={() => setShowPassword(prev => !prev)}
+                                            >
+                                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </Button>
+                                        </div>
                                         <Button onClick={handlePasswordVerification} disabled={isVerifying}>
                                             {isVerifying ? <Loader2 className="animate-spin"/> : <Unlock />}
                                             Unlock

@@ -26,7 +26,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import React from "react";
-import { Loader2, Save, Plug, MessageSquare, Lock } from "lucide-react";
+import { Loader2, Save, Plug, MessageSquare, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { saveSettings, testWhaConnection, type SettingsFormValues } from "./actions";
 
@@ -47,6 +47,7 @@ export default function SettingsPage() {
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isCheckingConnection, setIsCheckingConnection] = React.useState(false);
     const [isTestingWha, setIsTestingWha] = React.useState(false);
+    const [showToken, setShowToken] = React.useState(false);
 
 
   const form = useForm<Omit<SettingsFormValues, 'lock_password'>>({
@@ -207,7 +208,23 @@ export default function SettingsPage() {
                   <FormItem>
                     <FormLabel>Access Token</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Your Access Token" {...field} />
+                      <div className="relative">
+                         <Input 
+                            type={showToken ? "text" : "password"} 
+                            placeholder="Your Access Token" 
+                            {...field} 
+                            className="pr-10"
+                         />
+                         <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowToken(prev => !prev)}
+                          >
+                            {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                      </div>
                     </FormControl>
                     <FormDescription>
                       Enter your permanent access token.
