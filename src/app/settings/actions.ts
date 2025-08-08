@@ -12,12 +12,11 @@ const settingsSchema = z.object({
   endpoint: z.string().min(1, "Endpoint is required.").default("https://graph.facebook.com/v19.0/"),
   marks_template_name: z.string().min(1, "Marks Template Name is required."),
   fees_template_name: z.string().min(1, "Fees Template Name is required."),
-  lock_password: z.string().optional(),
 });
 
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
 
-export async function saveSettings(data: SettingsFormValues) {
+export async function saveSettings(data: Omit<SettingsFormValues, 'lock_password'>) {
     try {
         const { error } = await supabase.from('settings').upsert(data, { onConflict: 'id' });
         if (error) {

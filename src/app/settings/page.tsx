@@ -39,7 +39,6 @@ const settingsSchema = z.object({
   endpoint: z.string().min(1, "Endpoint is required.").default("https://graph.facebook.com/v19.0/"),
   marks_template_name: z.string().min(1, "Marks Template Name is required."),
   fees_template_name: z.string().min(1, "Fees Template Name is required."),
-  lock_password: z.string().optional(),
 });
 
 
@@ -50,7 +49,7 @@ export default function SettingsPage() {
     const [isTestingWha, setIsTestingWha] = React.useState(false);
 
 
-  const form = useForm<SettingsFormValues>({
+  const form = useForm<Omit<SettingsFormValues, 'lock_password'>>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
         id: 1,
@@ -60,7 +59,6 @@ export default function SettingsPage() {
         endpoint: "https://graph.facebook.com/v19.0/",
         marks_template_name: "",
         fees_template_name: "",
-        lock_password: ""
     },
   });
 
@@ -73,7 +71,7 @@ export default function SettingsPage() {
             .single();
 
         if (data) {
-            const formData: SettingsFormValues = {
+            const formData: Omit<SettingsFormValues, 'lock_password'> = {
                 id: data.id || 1,
                 phone_number_id: data.phone_number_id || "",
                 waba_id: data.waba_id || "",
@@ -81,7 +79,6 @@ export default function SettingsPage() {
                 endpoint: data.endpoint || "https://graph.facebook.com/v19.0/",
                 marks_template_name: data.marks_template_name || "",
                 fees_template_name: data.fees_template_name || "",
-                lock_password: data.lock_password || "",
             };
             form.reset(formData);
         } else if(error && error.code !== 'PGRST116') { 
@@ -96,7 +93,7 @@ export default function SettingsPage() {
   }, [form, toast]);
 
 
-  async function onSubmit(values: SettingsFormValues) {
+  async function onSubmit(values: Omit<SettingsFormValues, 'lock_password'>) {
     setIsSubmitting(true);
     const result = await saveSettings(values);
     setIsSubmitting(false);
@@ -254,22 +251,6 @@ export default function SettingsPage() {
                     <FormControl>
                       <Input placeholder="Template for grade updates" {...field} />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lock_password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Lock Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="Set a password to lock uploads" {...field} />
-                    </FormControl>
-                     <FormDescription>
-                      Leave this blank to disable the lock.
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
