@@ -815,8 +815,8 @@ function EduAlertDashboard() {
                                             <CardFooter className="flex justify-between items-center py-4">
                                                 <div className="text-sm text-muted-foreground">Showing {paginatedData.length} of {finalData.length} records.</div>
                                                 <div className="flex gap-2">
-                                                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p-1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4"/></Button>
-                                                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p+1)} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4"/></Button>
+                                                    <Button type="button" variant="outline" size="sm" onClick={() => setCurrentPage(p => p-1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4"/></Button>
+                                                    <Button type="button" variant="outline" size="sm" onClick={() => setCurrentPage(p => p+1)} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4"/></Button>
                                                 </div>
                                             </CardFooter>
                                         )}
