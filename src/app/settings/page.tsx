@@ -217,13 +217,14 @@ export default function SettingsPage() {
                     <p className="mt-1 text-sm text-muted-foreground">Enter the password to view or edit settings.</p>
                     <div className="mt-4 flex gap-2">
                         <div className="relative flex-grow">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input 
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Enter password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handlePasswordVerification()}
-                                className="pr-10"
+                                className="pl-10 pr-10"
                             />
                             <Button 
                                 type="button" 
@@ -371,3 +372,5 @@ export default function SettingsPage() {
     </main>
   );
 }
+
+    
