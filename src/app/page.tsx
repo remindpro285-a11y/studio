@@ -22,6 +22,8 @@ import {
   CircleAlert,
   CheckCircle,
   XCircle,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
@@ -147,6 +149,9 @@ function EduAlertDashboard() {
   const [sendingProgress, setSendingProgress] = React.useState(0);
   const [sendStatus, setSendStatus] = React.useState<SendStatus[]>([]);
   const [messagePreview, setMessagePreview] = React.useState("");
+  const [isUnlocked, setIsUnlocked] = React.useState(false);
+  const [password, setPassword] = React.useState("");
+  const [isVerifying, setIsVerifying] = React.useState(false);
 
 
   const form = useForm<z.infer<typeof FormSchema>>({
@@ -174,6 +179,9 @@ function EduAlertDashboard() {
 
         if (data) {
             setSettings(data);
+            if (!data.lock_password) {
+                setIsUnlocked(true);
+            }
         } else if (error && error.code !== 'PGRST116') {
              toast({
                 variant: "destructive",
@@ -189,10 +197,8 @@ function EduAlertDashboard() {
   React.useEffect(() => {
     const newMappings: Record<string, string> = {};
     
-    // Auto-map based on headers
     headers.forEach(header => {
         const bestMatch = findBestMatch(header, MAPPING_FIELDS[mode]);
-        // Avoid overwriting existing mappings and ensure one-to-one mapping
         if (bestMatch && !newMappings[bestMatch] && !Object.values(newMappings).includes(header)) {
              newMappings[bestMatch] = header;
         }
@@ -414,7 +420,30 @@ function EduAlertDashboard() {
     form.reset();
     setSendStatus([]);
     setSendingProgress(0);
+    if(settings?.lock_password) {
+        setIsUnlocked(false);
+        setPassword("");
+    }
   };
+
+  const handlePasswordVerification = async () => {
+    if (!settings) {
+        toast({ variant: "destructive", title: "Error", description: "Settings not loaded yet."});
+        return;
+    }
+    if (!settings.lock_password) {
+        setIsUnlocked(true);
+        return;
+    }
+    setIsVerifying(true);
+    if(password === settings.lock_password) {
+        setIsUnlocked(true);
+        toast({ title: "Unlocked", description: "You can now upload data.", className: "bg-primary text-primary-foreground"});
+    } else {
+        toast({ variant: "destructive", title: "Incorrect Password", description: "The password you entered is incorrect."});
+    }
+    setIsVerifying(false);
+  }
 
   const paginatedData = finalData.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
@@ -516,18 +545,43 @@ function EduAlertDashboard() {
                         </>
                     ) : (
                         <>
-                            <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
-                            <h3 className="mt-4 text-lg font-semibold">Upload Student Data</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">Click below to select an Excel or CSV file.</p>
-                            <p className="mt-1 text-xs text-muted-foreground">Supported formats: .xlsx, .xls, .csv</p>
-                            <div className="mt-6">
-                                <Button asChild>
-                                    <label htmlFor="file-upload" className="cursor-pointer">
-                                        <FileUp className="mr-2 h-4 w-4"/> Choose File
-                                        <Input id="file-upload" type="file" className="sr-only" onChange={handleFileChange} accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
-                                    </label>
-                                </Button>
-                            </div>
+                            {!isUnlocked ? (
+                                <div className="max-w-sm mx-auto">
+                                    <Lock className="mx-auto h-12 w-12 text-muted-foreground" />
+                                    <h3 className="mt-4 text-lg font-semibold">Dashboard Locked</h3>
+                                    <p className="mt-1 text-sm text-muted-foreground">Enter the password to upload student data.</p>
+                                    <div className="mt-4 flex gap-2">
+                                        <Input 
+                                            type="password"
+                                            placeholder="Enter password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handlePasswordVerification()}
+                                        />
+                                        <Button onClick={handlePasswordVerification} disabled={isVerifying}>
+                                            {isVerifying ? <Loader2 className="animate-spin"/> : <Unlock />}
+                                            Unlock
+                                        </Button>
+                                    </div>
+                                    {isLoadingSettings && <p className="text-xs text-muted-foreground mt-2">Loading settings...</p>}
+                                </div>
+
+                            ) : (
+                                <>
+                                    <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
+                                    <h3 className="mt-4 text-lg font-semibold">Upload Student Data</h3>
+                                    <p className="mt-1 text-sm text-muted-foreground">Click below to select an Excel or CSV file.</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">Supported formats: .xlsx, .xls, .csv</p>
+                                    <div className="mt-6">
+                                        <Button asChild>
+                                            <label htmlFor="file-upload" className="cursor-pointer">
+                                                <FileUp className="mr-2 h-4 w-4"/> Choose File
+                                                <Input id="file-upload" type="file" className="sr-only" onChange={handleFileChange} accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" disabled={!isUnlocked}/>
+                                            </label>
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
                         </>
                     )}
                 </div>

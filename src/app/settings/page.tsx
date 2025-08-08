@@ -26,7 +26,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import React from "react";
-import { Loader2, Save, Plug, MessageSquare } from "lucide-react";
+import { Loader2, Save, Plug, MessageSquare, Lock } from "lucide-react";
 import Link from "next/link";
 import { saveSettings, testWhaConnection, type SettingsFormValues } from "./actions";
 
@@ -39,6 +39,7 @@ const settingsSchema = z.object({
   endpoint: z.string().min(1, "Endpoint is required.").default("https://graph.facebook.com/v19.0/"),
   marks_template_name: z.string().min(1, "Marks Template Name is required."),
   fees_template_name: z.string().min(1, "Fees Template Name is required."),
+  lock_password: z.string().optional(),
 });
 
 
@@ -58,7 +59,8 @@ export default function SettingsPage() {
         access_token: "",
         endpoint: "https://graph.facebook.com/v19.0/",
         marks_template_name: "",
-        fees_template_name: ""
+        fees_template_name: "",
+        lock_password: ""
     },
   });
 
@@ -71,7 +73,6 @@ export default function SettingsPage() {
             .single();
 
         if (data) {
-            // Ensure all fields have string values to avoid issues with controlled components
             const formData: SettingsFormValues = {
                 id: data.id || 1,
                 phone_number_id: data.phone_number_id || "",
@@ -80,9 +81,10 @@ export default function SettingsPage() {
                 endpoint: data.endpoint || "https://graph.facebook.com/v19.0/",
                 marks_template_name: data.marks_template_name || "",
                 fees_template_name: data.fees_template_name || "",
+                lock_password: data.lock_password || "",
             };
             form.reset(formData);
-        } else if(error && error.code !== 'PGRST116') { // Ignore no rows found error
+        } else if(error && error.code !== 'PGRST116') { 
              toast({
                 variant: "destructive",
                 title: "Error fetching settings",
@@ -119,7 +121,7 @@ export default function SettingsPage() {
     try {
         const { error } = await supabase.from('settings').select('id').limit(1);
 
-        if (error && error.code !== 'PGRST116') { // 'PGRST116' is 'object not found', which is ok if table is empty.
+        if (error && error.code !== 'PGRST116') { 
             throw error;
         }
 
@@ -142,7 +144,7 @@ export default function SettingsPage() {
 
   async function handleTestWhaConnection() {
       setIsTestingWha(true);
-      // Save before testing to ensure we use the latest values from the form
+      
       await form.handleSubmit(onSubmit)();
 
       const result = await testWhaConnection();
@@ -208,7 +210,7 @@ export default function SettingsPage() {
                   <FormItem>
                     <FormLabel>Access Token</FormLabel>
                     <FormControl>
-                      <Input type="text" placeholder="Your Access Token" {...field} />
+                      <Input type="password" placeholder="Your Access Token" {...field} />
                     </FormControl>
                     <FormDescription>
                       Enter your permanent access token.
@@ -252,6 +254,22 @@ export default function SettingsPage() {
                     <FormControl>
                       <Input placeholder="Template for grade updates" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="lock_password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lock Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Set a password to lock uploads" {...field} />
+                    </FormControl>
+                     <FormDescription>
+                      Leave this blank to disable the lock.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
