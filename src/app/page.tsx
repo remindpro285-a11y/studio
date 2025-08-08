@@ -239,31 +239,28 @@ function EduAlertDashboard() {
         };
 
         if (mode === 'fees') {
-            const params = [
-                `${previewRow.studentName} (${previewRow.className})`,
-                feeName || '[Fee Name]',
-                dueDate ? format(dueDate, 'dd/MM/yy') : '[Due Date]',
-                previewRow.feeAmount || '[Amount]',
-            ];
-            setMessagePreview(`Example: Your template params will be filled like this: 1: ${params[0]}, 2: ${params[1]}, 3: ${params[2]}, 4: ${params[3]}.`);
+            const studentInfo = `${previewRow.studentName || "[Student Name]"} (${previewRow.className || "[Class]"})`;
+            const feeNameText = feeName || '[Fee Name]';
+            const dueDateText = dueDate ? format(dueDate, 'dd/MM/yy') : '[Due Date]';
+            const amountText = previewRow.feeAmount || '[Amount]';
+            
+            setMessagePreview(`Dear Parent, the ${feeNameText} for your child, ${studentInfo}, of ₹${amountText} is due on ${dueDateText}. Thank you.`);
         } else {
+            const studentInfo = `${previewRow.studentName || "[Student Name]"} (${previewRow.className || "[Class]"})`;
+            const examNameText = examName || '[Exam Name]';
+
             const mappedHeaders = Object.values(mappings);
             const gradesList = Object.entries(previewRow.rawData)
                 .filter(([header]) => !mappedHeaders.includes(header))
                 .map(([subject, grade]) => `${subject}: ${grade}`)
                 .join(', ');
 
-            const params = [
-                 `${previewRow.studentName} (${previewRow.className})`,
-                 examName || '[Exam Name]',
-                 gradesList || '[Grades List]',
-            ];
-             setMessagePreview(`Example: Your template params will be filled like this: 1: ${params[0]}, 2: ${params[1]}, 3: ${params[2]}.`);
+            setMessagePreview(`Dear Parent, the results for the ${examNameText} for your child, ${studentInfo}, are as follows: ${gradesList || "[Grades List]"}.`);
         }
     } else {
         setMessagePreview("");
     }
-  }, [step, finalData, mode, feeName, dueDate, examName, mappings]);
+}, [step, finalData, mode, feeName, dueDate, examName, mappings]);
 
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
