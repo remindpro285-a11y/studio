@@ -211,17 +211,24 @@ function EduAlertDashboard() {
   const dueDate = form.watch("dueDate");
   const examName = form.watch("examName");
 
-    const finalData = React.useMemo(() => {
+  const finalData = React.useMemo(() => {
     if (step < 2) return [];
 
-    return data.map(row => {
+    return data
+      .map(row => {
         const newRow: Record<string, string> = {};
         Object.entries(mappings).forEach(([mapKey, header]) => {
-            newRow[mapKey] = String(row[header] ?? '');
+          newRow[mapKey] = String(row[header] ?? '');
         });
         return { ...newRow, phoneNumber: newRow.phoneNumber, rawData: row };
-    });
-  }, [step, data, mappings]);
+      })
+      .filter(row => {
+        if (mode === 'fees') {
+          return row.feeAmount !== '0';
+        }
+        return true;
+      });
+  }, [step, data, mappings, mode]);
 
   React.useEffect(() => {
     if (step === 2 && finalData.length > 0) {
