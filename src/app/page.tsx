@@ -498,7 +498,7 @@ function EduAlertDashboard() {
                 </div>
                  <div className="flex gap-2">
                     <Button variant="outline" size="sm" asChild>
-                        <Link href="/settings"><MessageSquareText className="mr-2 h-4 w-4" /> Go to Settings</Link>
+                        <Link href="/settings"><Lock className="mr-2 h-4 w-4" /> Go to Settings</Link>
                     </Button>
                 </div>
             </div>

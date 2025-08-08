@@ -26,10 +26,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import React from "react";
-import { Loader2, Save, Plug, MessageSquare, Eye, EyeOff } from "lucide-react";
+import { Loader2, Save, Plug, MessageSquare, Eye, EyeOff, Lock, Unlock } from "lucide-react";
 import Link from "next/link";
 import { saveSettings, testWhaConnection, type SettingsFormValues } from "./actions";
-
+import { verifyPassword } from "../actions";
 
 const settingsSchema = z.object({
   id: z.number().default(1),
@@ -48,6 +48,13 @@ export default function SettingsPage() {
     const [isCheckingConnection, setIsCheckingConnection] = React.useState(false);
     const [isTestingWha, setIsTestingWha] = React.useState(false);
     const [showToken, setShowToken] = React.useState(false);
+    
+    const [isUnlocked, setIsUnlocked] = React.useState(false);
+    const [password, setPassword] = React.useState("");
+    const [isVerifying, setIsVerifying] = React.useState(false);
+    const [showPassword, setShowPassword] = React.useState(false);
+    const [isPasswordSet, setIsPasswordSet] = React.useState(false);
+    const [isLoading, setIsLoading] = React.useState(true);
 
 
   const form = useForm<Omit<SettingsFormValues, 'lock_password'>>({
@@ -65,6 +72,7 @@ export default function SettingsPage() {
 
   React.useEffect(() => {
     async function fetchSettings() {
+        setIsLoading(true);
         const { data, error } = await supabase
             .from('settings')
             .select('*')
@@ -72,6 +80,12 @@ export default function SettingsPage() {
             .single();
 
         if (data) {
+            if (data.lock_password) {
+                setIsPasswordSet(true);
+            } else {
+                setIsUnlocked(true);
+            }
+
             const formData: Omit<SettingsFormValues, 'lock_password'> = {
                 id: data.id || 1,
                 phone_number_id: data.phone_number_id || "",
@@ -89,6 +103,7 @@ export default function SettingsPage() {
                 description: error.message,
             });
         }
+        setIsLoading(false);
     }
     fetchSettings();
   }, [form, toast]);
@@ -163,6 +178,23 @@ export default function SettingsPage() {
       setIsTestingWha(false);
   }
 
+  const handlePasswordVerification = async () => {
+    setIsVerifying(true);
+    const isCorrect = await verifyPassword(password);
+    if(isCorrect) {
+        setIsUnlocked(true);
+        toast({ 
+            title: "Unlocked", 
+            description: "Settings are now accessible.", 
+            className: "bg-primary text-primary-foreground",
+            duration: 3000,
+        });
+    } else {
+        toast({ variant: "destructive", title: "Incorrect Password", description: "The password you entered is incorrect."});
+    }
+    setIsVerifying(false);
+  }
+
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center p-4 sm:p-8 bg-background">
       <Card className="w-full max-w-2xl shadow-2xl">
@@ -173,6 +205,44 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+        {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+                <Loader2 className="mx-auto h-12 w-12 text-primary animate-spin" />
+            </div>
+        ) : !isUnlocked ? (
+            <div className="text-center p-8 border-2 border-dashed rounded-lg">
+                <div className="max-w-sm mx-auto">
+                    <Lock className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-4 text-lg font-semibold">Settings Locked</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">Enter the password to view or edit settings.</p>
+                    <div className="mt-4 flex gap-2">
+                        <div className="relative flex-grow">
+                            <Input 
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Enter password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handlePasswordVerification()}
+                                className="pr-10"
+                            />
+                            <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="sm" 
+                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                onClick={() => setShowPassword(prev => !prev)}
+                            >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                        </div>
+                        <Button onClick={handlePasswordVerification} disabled={isVerifying}>
+                            {isVerifying ? <Loader2 className="animate-spin"/> : <Unlock />}
+                            Unlock
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -295,6 +365,7 @@ export default function SettingsPage() {
               </CardFooter>
             </form>
           </Form>
+        )}
         </CardContent>
       </Card>
     </main>
