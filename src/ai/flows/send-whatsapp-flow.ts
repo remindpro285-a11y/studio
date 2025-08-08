@@ -73,12 +73,11 @@ export async function sendWhatsAppMessage(input: SendWhatsAppMessageInput): Prom
         body: JSON.stringify(payload),
       });
 
-      const responseData = await response.json();
-
       if (!response.ok) {
-        const errorMessage = responseData.error?.message || `API Error: ${response.statusText}`;
-        const errorDetails = responseData.error?.error_data?.details ? ` Details: ${responseData.error.error_data.details}` : '';
-        throw new Error(`${errorMessage}${errorDetails}`);
+        const responseData = await response.json().catch(() => response.text()); // Gracefully handle non-JSON responses
+        const errorMessage = (responseData as any)?.error?.message || `API Error: ${response.statusText}`;
+        const errorDetails = typeof responseData === 'object' && responseData !== null ? JSON.stringify((responseData as any).error) : responseData;
+        throw new Error(`${errorMessage} - Details: ${errorDetails}`);
       }
 
       return { success: true };

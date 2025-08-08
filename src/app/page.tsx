@@ -352,7 +352,7 @@ function EduAlertDashboard() {
   };
 
   const sanitizeParam = (param: string) => {
-    return String(param).replace(/[\n\t]/g, ' ').replace(/ {2,}/g, ' ');
+    return String(param).replace(/[\n\t]/g, '').trim();
   };
 
   const handleSend = async () => {
@@ -532,7 +532,7 @@ function EduAlertDashboard() {
                               "absolute top-6 left-1/2 w-full h-1 bg-border -z-10",
                               // Hide line on the last item of a row in the 2-col grid
                               "sm:block",
-                              index === 1 ? "hidden" : "block", // Hide line after step 2 on mobile
+                              index === 1 ? "hidden sm:block" : "block", // Hide line after step 2 on mobile
                               index === 3 ? "hidden" : "block"  // Hide line after step 4 always
                             )} />
                            )}
