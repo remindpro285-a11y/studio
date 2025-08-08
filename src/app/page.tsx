@@ -146,6 +146,7 @@ function EduAlertDashboard() {
   const [direction, setDirection] = React.useState(1);
   const [sendingProgress, setSendingProgress] = React.useState(0);
   const [sendStatus, setSendStatus] = React.useState<SendStatus[]>([]);
+  const [messagePreview, setMessagePreview] = React.useState("");
 
 
   const form = useForm<z.infer<typeof FormSchema>>({
@@ -203,6 +204,54 @@ function EduAlertDashboard() {
   const feeName = form.watch("feeName");
   const dueDate = form.watch("dueDate");
   const examName = form.watch("examName");
+
+    const finalData = React.useMemo(() => {
+    if (step < 2) return [];
+
+    return data.map(row => {
+        const newRow: Record<string, string> = {};
+        Object.entries(mappings).forEach(([mapKey, header]) => {
+            newRow[mapKey] = String(row[header] ?? '');
+        });
+        return { ...newRow, phoneNumber: newRow.phoneNumber, rawData: row };
+    });
+  }, [step, data, mappings]);
+
+  React.useEffect(() => {
+    if (step === 2 && finalData.length > 0) {
+        const previewRow = finalData[0];
+        if (!previewRow) {
+            setMessagePreview("");
+            return;
+        };
+
+        if (mode === 'fees') {
+            const params = [
+                `${previewRow.studentName} (${previewRow.className})`,
+                feeName || '[Fee Name]',
+                dueDate ? format(dueDate, 'dd/MM/yy') : '[Due Date]',
+                previewRow.feeAmount || '[Amount]',
+            ];
+            setMessagePreview(`Example: Your template params will be filled like this: 1: ${params[0]}, 2: ${params[1]}, 3: ${params[2]}, 4: ${params[3]}.`);
+        } else {
+            const mappedHeaders = Object.values(mappings);
+            const gradesList = Object.entries(previewRow.rawData)
+                .filter(([header]) => !mappedHeaders.includes(header))
+                .map(([subject, grade]) => `${subject}: ${grade}`)
+                .join(', ');
+
+            const params = [
+                 `${previewRow.studentName} (${previewRow.className})`,
+                 examName || '[Exam Name]',
+                 gradesList || '[Grades List]',
+            ];
+             setMessagePreview(`Example: Your template params will be filled like this: 1: ${params[0]}, 2: ${params[1]}, 3: ${params[2]}.`);
+        }
+    } else {
+        setMessagePreview("");
+    }
+  }, [step, finalData, mode, feeName, dueDate, examName, mappings]);
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -285,18 +334,6 @@ function EduAlertDashboard() {
     setCurrentPage(1);
   };
 
-  const finalData = React.useMemo(() => {
-    if (step < 2) return [];
-
-    return data.map(row => {
-        const newRow: Record<string, string> = {};
-        Object.entries(mappings).forEach(([mapKey, header]) => {
-            newRow[mapKey] = String(row[header] ?? '');
-        });
-        return { ...newRow, phoneNumber: newRow.phoneNumber, rawData: row };
-    });
-  }, [step, data, mappings]);
-
   const sanitizeParam = (param: string) => {
     return String(param).replace(/[\n\t]/g, ' ').replace(/ {2,}/g, ' ');
   };
@@ -363,7 +400,7 @@ function EduAlertDashboard() {
     setIsSending(false);
     toast({
         title: "Process Complete",
-        description: `Finished sending notifications. See status below.`,
+        description: `Finished sending all ${finalData.length} notifications. See status below.`,
         className: "bg-primary text-primary-foreground"
     });
   };
@@ -634,9 +671,9 @@ function EduAlertDashboard() {
                                 )}
                                 <Alert>
                                     <MessageSquareText className="h-4 w-4"/>
-                                    <AlertTitle>Template to be Used</AlertTitle>
+                                    <AlertTitle>Live Message Preview</AlertTitle>
                                     <AlertDescription>
-                                        Notifications will be sent using the WhatsApp template named <span className="font-semibold">{currentTemplateName}</span> from your settings. Please ensure it matches the parameters you've configured.
+                                        {messagePreview ? messagePreview : "Fill in the details to see a preview."}
                                     </AlertDescription>
                                 </Alert>
                             </div>
