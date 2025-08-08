@@ -684,148 +684,148 @@ function EduAlertDashboard() {
             )}
 
             {step === 2 && (
-                <Form {...form}>
-                    <form className="space-y-8">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            <div className="lg:col-span-1 space-y-6">
-                                <h3 className="text-xl font-semibold">Final Configuration</h3>
-                                <p className="text-sm text-muted-foreground">Fill in the remaining details for your notification template.</p>
-                                {mode === "fees" && (
-                                <>
-                                    <FormField
-                                        control={form.control}
-                                        name="feeName"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Fee Name</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="e.g., Annual Tuition Fee" {...field} value={field.value ?? ""} />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="dueDate"
-                                        render={({ field }) => (
-                                            <FormItem className="flex flex-col">
-                                                <FormLabel>Due Date</FormLabel>
-                                                <Popover>
-                                                <PopoverTrigger asChild>
+                <div>
+                    <Form {...form}>
+                        <form className="space-y-8">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                <div className="lg:col-span-1 space-y-6">
+                                    <h3 className="text-xl font-semibold">Final Configuration</h3>
+                                    <p className="text-sm text-muted-foreground">Fill in the remaining details for your notification template.</p>
+                                    {mode === "fees" && (
+                                    <>
+                                        <FormField
+                                            control={form.control}
+                                            name="feeName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Fee Name</FormLabel>
                                                     <FormControl>
-                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? format(field.value, "dd/MM/yy") : <span>Pick a date</span>}
-                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
+                                                        <Input placeholder="e.g., Annual Tuition Fee" {...field} value={field.value ?? ""} />
                                                     </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                                </PopoverContent>
-                                                </Popover>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </>
-                                )}
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="dueDate"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-col">
+                                                    <FormLabel>Due Date</FormLabel>
+                                                    <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                            {field.value ? format(field.value, "dd/MM/yy") : <span>Pick a date</span>}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                        </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                    </PopoverContent>
+                                                    </Popover>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </>
+                                    )}
 
-                                {mode === "grades" && (
-                                     <FormField
-                                        control={form.control}
-                                        name="examName"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Exam Name</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="e.g., Mid-Term Exams" {...field} value={field.value ?? ""} />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                )}
-                                <div>
-                                    <Label>Live Message Preview</Label>
-                                    <div className="mt-2 p-4 rounded-lg bg-gray-200 dark:bg-gray-800 whatsapp-chat-container">
-                                        <div className="flex flex-col items-start">
-                                        {messagePreview ? (
-                                            <div className="bubble receiver">
-                                                {messagePreview}
-                                                <span className="timestamp">{previewTimestamp}</span>
+                                    {mode === "grades" && (
+                                        <FormField
+                                            control={form.control}
+                                            name="examName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Exam Name</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="e.g., Mid-Term Exams" {...field} value={field.value ?? ""} />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    )}
+                                    <div>
+                                        <Label>Live Message Preview</Label>
+                                        <div className="mt-2 p-4 rounded-lg bg-gray-200 dark:bg-gray-800 whatsapp-chat-container">
+                                            <div className="flex flex-col items-start">
+                                            {messagePreview ? (
+                                                <div className="bubble receiver">
+                                                    {messagePreview}
+                                                    <span className="timestamp">{previewTimestamp}</span>
+                                                </div>
+                                            ) : (
+                                                <div className="bubble receiver text-muted-foreground">
+                                                    Fill in details to see a preview.
+                                                    <span className="timestamp">{format(new Date(), 'HH:mm')}</span>
+                                                </div>
+                                            )}
                                             </div>
-                                        ) : (
-                                            <div className="bubble receiver text-muted-foreground">
-                                                Fill in details to see a preview.
-                                                 <span className="timestamp">{format(new Date(), 'HH:mm')}</span>
-                                            </div>
-                                        )}
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="lg:col-span-2">
-                                <div className="flex justify-between items-center mb-2">
-                                    <h3 className="text-xl font-semibold">Data Preview</h3>
-                                    <div className="text-sm text-muted-foreground">
-                                        Page {currentPage} of {totalPages}
+                                <div className="lg:col-span-2">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h3 className="text-xl font-semibold">Data Preview</h3>
+                                        <div className="text-sm text-muted-foreground">
+                                            Page {currentPage} of {totalPages}
+                                        </div>
                                     </div>
+                                    <Card>
+                                        <CardContent className="p-0">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>Student</TableHead>
+                                                        <TableHead>Class</TableHead>
+                                                        <TableHead>Phone</TableHead>
+                                                        {mode === 'fees' && <TableHead>Fee Amount</TableHead>}
+                                                        {mode === 'grades' && Object.keys(data[0] ?? {})
+                                                            .filter(header => !Object.values(mappings).includes(header))
+                                                            .map(subject => <TableHead key={subject}>{subject}</TableHead>)
+                                                        }
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                {paginatedData.length > 0 ? paginatedData.map((row, index) => (
+                                                    <TableRow key={index}>
+                                                        <TableCell className="font-medium">{row.studentName}</TableCell>
+                                                        <TableCell>{row.className}</TableCell>
+                                                        <TableCell>{row.phoneNumber}</TableCell>
+                                                        {mode === 'fees' && <TableCell>{row.feeAmount}</TableCell>}
+                                                        {mode === 'grades' && Object.keys(data[0] ?? {})
+                                                            .filter(header => !Object.values(mappings).includes(header))
+                                                            .map(subject => <TableCell key={subject}>{data.find(d => d[mappings['studentName']] === row.studentName)?.[subject]}</TableCell>)
+                                                        }
+                                                    </TableRow>
+                                                )) : (
+                                                    <TableRow><TableCell colSpan={mode === 'fees' ? 4 : 3 + (Object.keys(data[0] ?? {}).length - Object.values(mappings).length)} className="text-center h-24">No data to display.</TableCell></TableRow>
+                                                )}
+                                                </TableBody>
+                                            </Table>
+                                        </CardContent>
+                                        {totalPages > 1 && (
+                                            <CardFooter className="flex justify-between items-center py-4">
+                                                <div className="text-sm text-muted-foreground">Showing {paginatedData.length} of {finalData.length} records.</div>
+                                                <div className="flex gap-2">
+                                                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p-1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4"/></Button>
+                                                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p+1)} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4"/></Button>
+                                                </div>
+                                            </CardFooter>
+                                        )}
+                                    </Card>
                                 </div>
-                                <Card>
-                                    <CardContent className="p-0">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Student</TableHead>
-                                                    <TableHead>Class</TableHead>
-                                                    <TableHead>Phone</TableHead>
-                                                    {mode === 'fees' && <TableHead>Fee Amount</TableHead>}
-                                                    {mode === 'grades' && Object.keys(data[0] ?? {})
-                                                        .filter(header => !Object.values(mappings).includes(header))
-                                                        .map(subject => <TableHead key={subject}>{subject}</TableHead>)
-                                                    }
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                            {paginatedData.length > 0 ? paginatedData.map((row, index) => (
-                                                <TableRow key={index}>
-                                                    <TableCell className="font-medium">{row.studentName}</TableCell>
-                                                    <TableCell>{row.className}</TableCell>
-                                                    <TableCell>{row.phoneNumber}</TableCell>
-                                                     {mode === 'fees' && <TableCell>{row.feeAmount}</TableCell>}
-                                                     {mode === 'grades' && Object.keys(data[0] ?? {})
-                                                        .filter(header => !Object.values(mappings).includes(header))
-                                                        .map(subject => <TableCell key={subject}>{data.find(d => d[mappings['studentName']] === row.studentName)?.[subject]}</TableCell>)
-                                                    }
-                                                </TableRow>
-                                            )) : (
-                                                <TableRow><TableCell colSpan={mode === 'fees' ? 4 : 3 + (Object.keys(data[0] ?? {}).length - Object.values(mappings).length)} className="text-center h-24">No data to display.</TableCell></TableRow>
-                                            )}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                    {totalPages > 1 && (
-                                        <CardFooter className="flex justify-between items-center py-4">
-                                            <div className="text-sm text-muted-foreground">Showing {paginatedData.length} of {finalData.length} records.</div>
-                                            <div className="flex gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p-1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4"/></Button>
-                                                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p+1)} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4"/></Button>
-                                            </div>
-                                        </CardFooter>
-                                    )}
-                                </Card>
                             </div>
-                        </div>
-
-                        <Separator/>
-
-                        <div className="flex justify-between items-center">
-                            <Button variant="outline" onClick={() => navigateToStep(1)}><ArrowLeft className="mr-2 h-4 w-4"/> Back to Mapping</Button>
-                             <Button type="button" size="lg" onClick={handleSend} disabled={isSending || finalData.length === 0}>
-                                {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
-                                {isSending ? "Sending..." : `Send ${finalData.length} Notifications`}
-                             </Button>
-                        </div>
-                    </form>
-                </Form>
+                            <Separator/>
+                        </form>
+                    </Form>
+                    <div className="flex justify-between items-center pt-8">
+                        <Button variant="outline" onClick={() => navigateToStep(1)}><ArrowLeft className="mr-2 h-4 w-4"/> Back to Mapping</Button>
+                        <Button type="button" size="lg" onClick={handleSend} disabled={isSending || finalData.length === 0}>
+                            {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
+                            {isSending ? "Sending..." : `Send ${finalData.length} Notifications`}
+                        </Button>
+                    </div>
+                </div>
             )}
 
              {step === 3 && (
