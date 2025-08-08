@@ -522,8 +522,8 @@ function EduAlertDashboard() {
                                   {step > s.id ? <Check className="w-6 h-6"/> : <s.icon className="w-6 h-6"/>}
                               </span>
                              </button>
-                             <div className="mt-2 text-center absolute top-16 w-32">
-                                  <h3 className={cn("font-medium text-sm", step >= s.id && "text-foreground")}>{s.title}</h3>
+                             <div className="mt-2 text-center absolute top-16 w-24 sm:w-32">
+                                  <h3 className={cn("font-medium text-xs sm:text-sm", step >= s.id && "text-foreground")}>{s.title}</h3>
                               </div>
                            </div>
                            {index < STEPS.length - 1 && <div className="h-1 w-full bg-border flex-1 -ml-4 -mr-4" />}
