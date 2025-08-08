@@ -43,6 +43,7 @@ Before using the application, you must have the following:
 3.  **Approved Message Templates**: You must have pre-approved message templates for both fee reminders and grade reports in your WhatsApp Business Manager. The application sends messages using these templates.
     *   **Fees Template Example**: `Dear Parent, the {{1}} for your child, {{2}}, of ₹{{3}} is due on {{4}}. Thank you.`
     *   **Grades Template Example**: `Dear Parent, the results for the {{1}} for your child, {{2}}, are as follows: {{3}}.`
+4.  **Understanding of WhatsApp API Costs**: The service fee for this software platform does **not** include the per-message cost charged by Meta (WhatsApp). The institution is responsible for its own WhatsApp Business Account and will be billed directly by Meta for the messages it sends. These costs are separate from the platform's subscription fee.
 
 ---
 
